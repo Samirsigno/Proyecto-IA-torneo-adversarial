@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 424" width="460" height="424" role="img" aria-labelledby="t d">
+<title id="t">Movimiento del peón</title>
+<desc id="d">Un peón blanco en e4 puede avanzar recto a e5 y en diagonal a d5, ambas casillas vacías, o atacar en diagonal al peón negro en f5. No puede ir hacia atrás ni de lado.</desc>
+<rect x="1" y="1" width="458" height="422" rx="14" fill="#fbf8f1" stroke="#d8cfbd" stroke-width="2"/>
+<text x="230" y="32" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="20" fill="#2b2b2b" text-anchor="middle" font-weight="bold">Cómo se mueve un peón</text>
+<rect x="100" y="222" width="52" height="52" fill="#c49a6c"/>
+<rect x="152" y="222" width="52" height="52" fill="#f0e2c4"/>
+<rect x="204" y="222" width="52" height="52" fill="#c49a6c"/>
+<rect x="256" y="222" width="52" height="52" fill="#f0e2c4"/>
+<rect x="308" y="222" width="52" height="52" fill="#c49a6c"/>
+<rect x="100" y="170" width="52" height="52" fill="#f0e2c4"/>
+<rect x="152" y="170" width="52" height="52" fill="#c49a6c"/>
+<rect x="204" y="170" width="52" height="52" fill="#f0e2c4"/>
+<rect x="256" y="170" width="52" height="52" fill="#c49a6c"/>
+<rect x="308" y="170" width="52" height="52" fill="#f0e2c4"/>
+<rect x="100" y="118" width="52" height="52" fill="#c49a6c"/>
+<rect x="152" y="118" width="52" height="52" fill="#f0e2c4"/>
+<rect x="204" y="118" width="52" height="52" fill="#c49a6c"/>
+<rect x="256" y="118" width="52" height="52" fill="#f0e2c4"/>
+<rect x="308" y="118" width="52" height="52" fill="#c49a6c"/>
+<rect x="100" y="66" width="52" height="52" fill="#f0e2c4"/>
+<rect x="152" y="66" width="52" height="52" fill="#c49a6c"/>
+<rect x="204" y="66" width="52" height="52" fill="#f0e2c4"/>
+<rect x="256" y="66" width="52" height="52" fill="#c49a6c"/>
+<rect x="308" y="66" width="52" height="52" fill="#f0e2c4"/>
+<rect x="100" y="66" width="260" height="208" fill="none" stroke="#2b2b2b" stroke-width="1.5"/>
+<rect x="154" y="120" width="48" height="48" fill="#8fd1a8" stroke="#2e9d57" stroke-width="3"/>
+<rect x="206" y="120" width="48" height="48" fill="#8fd1a8" stroke="#2e9d57" stroke-width="3"/>
+<rect x="258" y="120" width="48" height="48" fill="#ee9a9a" stroke="#d33a3a" stroke-width="3"/>
+<text x="126" y="59" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">c</text>
+<text x="126" y="291" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">c</text>
+<text x="178" y="59" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">d</text>
+<text x="178" y="291" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">d</text>
+<text x="230" y="59" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">e</text>
+<text x="230" y="291" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">e</text>
+<text x="282" y="59" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">f</text>
+<text x="282" y="291" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">f</text>
+<text x="334" y="59" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">g</text>
+<text x="334" y="291" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">g</text>
+<text x="90" y="252.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">3</text>
+<text x="370" y="252.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">3</text>
+<text x="90" y="200.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">4</text>
+<text x="370" y="200.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">4</text>
+<text x="90" y="148.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">5</text>
+<text x="370" y="148.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">5</text>
+<text x="90" y="96.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">6</text>
+<text x="370" y="96.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">6</text>
+<circle cx="230" cy="196" r="17.2" fill="#ffffff" stroke="#2b2b2b" stroke-width="2"/><circle cx="230" cy="196" r="9.4" fill="none" stroke="#e5e0d3" stroke-width="1.5" opacity="0.55"/>
+<circle cx="282" cy="144" r="17.2" fill="#2f2f33" stroke="#000000" stroke-width="2"/><circle cx="282" cy="144" r="9.4" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.55"/>
+<line x1="217.3" y1="183.3" x2="202.7" y2="168.7" stroke="#2e9d57" stroke-width="5" stroke-linecap="round"/><polygon points="192.1,158.1 208.4,163.1 197.1,174.4" fill="#2e9d57"/>
+<line x1="230" y1="178" x2="230" y2="179" stroke="#2e9d57" stroke-width="5" stroke-linecap="round"/><polygon points="230,164 238,179 222,179" fill="#2e9d57"/>
+<line x1="242.7" y1="183.3" x2="257.3" y2="168.7" stroke="#d33a3a" stroke-width="5" stroke-linecap="round"/><polygon points="267.9,158.1 262.9,174.4 251.6,163.1" fill="#d33a3a"/>
+<path d="M167 185 L189 207 M189 185 L167 207" stroke="#8d877a" stroke-width="5" stroke-linecap="round" opacity="0.85"/>
+<path d="M271 185 L293 207 M293 185 L271 207" stroke="#8d877a" stroke-width="5" stroke-linecap="round" opacity="0.85"/>
+<path d="M219 237 L241 259 M241 237 L219 259" stroke="#8d877a" stroke-width="5" stroke-linecap="round" opacity="0.85"/>
+<rect x="46" y="307" width="18" height="18" rx="3" fill="#8fd1a8" stroke="#2e9d57" stroke-width="2.5"/>
+<text x="72" y="321" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="14" fill="#2b2b2b" text-anchor="start" font-weight="normal">Avanza a una casilla vacía (recto o diagonal)</text>
+<rect x="46" y="335" width="18" height="18" rx="3" fill="#ee9a9a" stroke="#d33a3a" stroke-width="2.5"/>
+<text x="72" y="349" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="14" fill="#2b2b2b" text-anchor="start" font-weight="normal">Ataca en diagonal a un rival (se tira un dado)</text>
+<path d="M52 369 l12 12 m0 -12 l-12 12" stroke="#8d877a" stroke-width="3.5" stroke-linecap="round"/>
+<text x="76" y="380" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="14" fill="#2b2b2b" text-anchor="start" font-weight="normal">Nunca hacia atrás ni de lado; no se ataca recto</text>
+</svg>

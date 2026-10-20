@@ -1,0 +1,47 @@
+# Liga oficial: todas las carpetas de estudiantes/ + random, montecarlo y los tiers.
+# Solo manual. El job «preparar» espera la aprobación del Environment liga-oficial.
+# Dónde corre: vars.MAQUINA_LIGA (ver la guía de operación del profesor).
+name: Liga oficial
+
+on:
+  workflow_dispatch:
+    inputs:
+      juegos_dados:
+        description: "Juegos de dados por pareja (cada uno = 2 partidas, una por color)"
+        type: number
+        default: 2
+      shards:
+        description: "En cuántas máquinas se reparte"
+        type: number
+        default: 20
+      verbose:
+        description: "Más detalle en los logs de cada shard"
+        type: boolean
+        default: false
+      aceptar_incidentes:
+        description: "Publicar aunque haya parejas excluidas por fallas de infraestructura"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: liga
+  cancel-in-progress: false
+
+jobs:
+  liga:
+    if: github.repository == 'raya-lucaria/ia_o26_torneo_adversarial' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/_liga.yml
+    with:
+      modo: oficial
+      juegos_dados: ${{ fromJSON(inputs.juegos_dados) }}
+      shards: ${{ fromJSON(inputs.shards) }}
+      verbose: ${{ inputs.verbose }}
+      aceptar_incidentes: ${{ inputs.aceptar_incidentes }}
+    secrets: inherit

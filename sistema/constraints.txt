@@ -1,0 +1,7 @@
+# Versiones fijas de las librerías preinstaladas. Tu requirements.txt no puede
+# cambiarlas: se instala con `-c constraints.txt`.
+# Deben coincidir con requirements.txt (lo revisa tests/test_config.py).
+numpy==2.4.6
+scipy==1.18.1
+numba==0.67.0
+llvmlite==0.49.0

@@ -1,0 +1,120 @@
+# Revisión de la entrega (PR al repo del curso). Es el check obligatorio «revisar-entrega»:
+# el PR solo puede tocar UNA carpeta estudiantes/<tu_equipo>/ (nombre válido, no
+# reservado y que no exista ya en main), la carpeta debe pasar `./torneo validar --entrega` y jugar 2 partidas de humo.
+# Corre con permisos de solo lectura y sin secretos (evento pull_request, nunca su variante «target»).
+name: Revisar entrega
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: revisar-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  revisar-entrega:
+    name: revisar-entrega
+    if: github.repository == 'raya-lucaria/ia_o26_torneo_adversarial'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Revisar qué archivos toca el PR
+        id: rutas
+        run: |
+          # El revisor de rutas se toma de la base (main), no del PR.
+          revisor="$RUNNER_TEMP/revisar_rutas.py"
+          git show "$BASE_SHA:.github/scripts/revisar_rutas.py" >"$revisor" 2>/dev/null ||
+            cp .github/scripts/revisar_rutas.py "$revisor"
+          # Los nombres de archivo los elige el autor del PR: nada se interpreta como comando.
+          token="$(python3 -c 'import secrets; print(secrets.token_hex(16))')"
+          echo "::stop-commands::$token"
+          echo "Cambios del PR:"
+          git diff --name-status --no-renames "$BASE_SHA...$HEAD_SHA"
+          ok=1
+          equipo="$(git diff --raw --no-renames --no-abbrev -z "$BASE_SHA...$HEAD_SHA" |
+            python3 "$revisor" --base "$BASE_SHA" 2>"$RUNNER_TEMP/errores.txt")" || ok=0
+          cat "$RUNNER_TEMP/errores.txt"
+          echo "::$token::"
+          if ((!ok)); then
+            {
+              echo "## ⚠️ El PR no se puede aceptar"
+              echo
+              echo '```'
+              cat "$RUNNER_TEMP/errores.txt"
+              echo '```'
+            } >>"$GITHUB_STEP_SUMMARY"
+            echo "::error::El PR solo puede cambiar tu carpeta estudiantes/<tu_equipo>/. Detalle en el resumen."
+            exit 1
+          fi
+          echo "Equipo: $equipo"
+          echo "equipo=$equipo" >>"$GITHUB_OUTPUT"
+
+      - name: Huella de la carpeta
+        env:
+          EQUIPO: ${{ steps.rutas.outputs.equipo }}
+        run: |
+          python3 sistema/herramientas/comparar_entrega.py --huella "estudiantes/$EQUIPO" \
+            --ref "$HEAD_SHA" | tee "$RUNNER_TEMP/huella.txt"
+          echo "Commit del PR: $HEAD_SHA" | tee -a "$RUNNER_TEMP/huella.txt"
+
+      - name: Preparar Docker y la caché de numba
+        run: ./torneo calentar
+
+      - name: Validar y jugar 2 partidas de humo
+        env:
+          EQUIPO: ${{ steps.rutas.outputs.equipo }}
+        run: |
+          .github/scripts/memoria.sh memoria.log &
+          muestreo=$!
+          token="$(python3 -c 'import secrets; print(secrets.token_hex(16))')"
+          echo "::stop-commands::$token"
+          valido=ok
+          ./torneo validar "$EQUIPO" --entrega || valido=falla
+          humo=ok
+          ./torneo jugar "$EQUIPO" random --partidas 2 || humo=falla
+          echo "::$token::"
+          kill "$muestreo" 2>/dev/null || true
+          # Humo: 2 partidas jugadas de verdad (con ganador, sin falla de infraestructura).
+          jugadas="$(python3 .github/scripts/resumen_prueba.py --equipo "$EQUIPO" --contar)"
+          ((jugadas >= 2)) || humo=falla
+          python3 .github/scripts/resumen_prueba.py --equipo "$EQUIPO" --validacion "$valido" \
+            --resultados resultados --memoria memoria.log >>"$GITHUB_STEP_SUMMARY"
+          {
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/huella.txt"
+            echo '```'
+          } >>"$GITHUB_STEP_SUMMARY"
+          if [[ "$valido" != ok ]]; then
+            echo "::error::estudiantes/$EQUIPO NO pasa la validación. Corre ./torneo validar $EQUIPO --entrega en tu máquina y arregla lo que diga."
+            exit 1
+          fi
+          if [[ "$humo" != ok ]]; then
+            echo "::error::No se pudieron jugar las 2 partidas de humo de estudiantes/$EQUIPO (se jugaron $jugadas). Revisa el log."
+            exit 1
+          fi
+
+      - name: Subir repeticiones
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repeticiones
+          path: |
+            resultados/
+            !resultados/.cache/
+          if-no-files-found: ignore
+          retention-days: 14

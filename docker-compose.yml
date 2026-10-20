@@ -1,0 +1,35 @@
+# Un solo servicio: el CLI del torneo. Úsalo a través de ./torneo, que antes construye las
+# imágenes en tu máquina (si faltan o cambió sistema/) y exporta las variables TORNEO_* de abajo.
+name: torneo
+services:
+  torneo:
+    image: torneo-base:local
+    # Nunca se descarga de un registro: la construye ./torneo (con la etiqueta torneo.fuente).
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: sistema/Dockerfile
+      target: cli
+    init: true
+    # Tu usuario: lo que se escribe en resultados/ es tuyo, no de root.
+    user: "${TORNEO_UID:-0}:${TORNEO_GID:-0}"
+    # Grupo dueño del socket de Docker: el CLI lanza los contenedores de los bots.
+    group_add:
+      - "${TORNEO_DOCKER_GID:-0}"
+    working_dir: /torneo
+    environment:
+      HOME: /tmp
+      # Caché de numba del propio CLI (visor, tableros), en tu carpeta resultados/.
+      NUMBA_CACHE_DIR: /torneo/resultados/.cache/numba_cli
+      # Se pasan solo si están definidas en tu terminal.
+      TORNEO_RAIZ_HOST:
+      TORNEO_HUSO:
+      TORNEO_LIMITES:
+      TORNEO_SEMILLA:
+      TORNEO_SIN_CPUSET:
+      TORNEO_SIMULTANEAS:
+      TORNEO_IMAGEN_DIGEST:
+      TERM:
+    volumes:
+      - .:/torneo
+      - /var/run/docker.sock:/var/run/docker.sock

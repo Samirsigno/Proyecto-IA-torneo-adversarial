@@ -1,0 +1,37 @@
+# Ensayo general de la liga, gratis: los mismos jobs que la liga oficial
+# (preparar → imagenes → jugar en 2 shards → publicar → pages), pero solo con random y
+# montecarlo, sin tiers ni secretos. Publica en la rama «ensayo» y en Pages bajo /ensayo/.
+name: Liga mini (ensayo)
+
+on:
+  workflow_dispatch:
+    inputs:
+      juegos_dados:
+        description: "Juegos de dados por pareja"
+        type: number
+        default: 2
+      verbose:
+        description: "Más detalle en los logs de cada shard"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: liga
+  cancel-in-progress: false
+
+jobs:
+  liga:
+    if: github.repository == 'raya-lucaria/ia_o26_torneo_adversarial' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/_liga.yml
+    with:
+      modo: mini
+      juegos_dados: ${{ fromJSON(inputs.juegos_dados) }}
+      shards: 2
+      verbose: ${{ inputs.verbose }}

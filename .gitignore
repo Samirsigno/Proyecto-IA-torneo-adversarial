@@ -1,0 +1,47 @@
+# Material interno del curso. Nunca se publica.
+/privado
+.superpowers/
+
+# Resultados de ligas y partidas locales (./torneo los escribe aquí)
+resultados/
+# Paquete de la liga en CI (límites oficiales)
+.liga/
+
+# Nota: estudiantes/<equipo>/data/ SÍ se sube (tablas o datos precomputados de tu bot,
+# dentro de los límites de tamaño). No agregues reglas que lo ignoren.
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+*.egg-info/
+/build/
+/dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+.ipynb_checkpoints/
+
+# Secretos y llaves privadas (la llave PÚBLICA sistema/llave_profesor.age.pub sí se sube)
+.env
+.env.*
+*.key
+*.pem
+age-key*.txt
+
+# Docker local
+docker-compose.override.yml
+
+# Editor / SO
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

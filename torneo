@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+# ./torneo <comando> — punto de entrada del torneo. Funciona desde cualquier carpeta del repo.
+#
+#   ./torneo jugar mi_equipo montecarlo      ./torneo validar mi_equipo
+#   ./torneo mini mi_equipo                  ./torneo construir
+#   ./torneo --help
+#
+# Con Docker (lo normal): el CLI corre en un contenedor y cada bot en el suyo, con los
+# límites oficiales. Las imágenes se construyen en tu máquina (nunca se descargan de un
+# registro): la primera vez y tras una actualización de sistema/ tarda unos minutos.
+# ./torneo construir las reconstruye a la fuerza (si algo raro pasa con Docker).
+# Con --sin-docker: corre con tu Python (necesita numpy, scipy y numba), sin límites.
+# Windows: usa WSL2 o Codespaces.
+#
+# Variables opcionales: TORNEO_CONSTRUIR=1 (reconstruir las imágenes aunque estén al día;
+# lo mismo que ./torneo construir), TORNEO_PYTHON (Python para --sin-docker), TORNEO_LIMITES (otro limites.toml).
+set -euo pipefail
+
+IMAGEN_CLI="torneo-base:local"
+IMAGEN_BOTS="torneo-bot-base:local"
+
+error() {
+    echo "✗ $*" >&2
+    exit 2
+}
+
+aqui="$(pwd -P)" # carpeta desde donde se llamó (para rutas relativas)
+
+# --- Raíz física del repo (siguiendo enlaces simbólicos al script) -------------------------
+fuente="${BASH_SOURCE[0]}"
+while [[ -L "$fuente" ]]; do
+    dir="$(cd -P "$(dirname "$fuente")" && pwd)"
+    fuente="$(readlink "$fuente")"
+    [[ "$fuente" == /* ]] || fuente="$dir/$fuente"
+done
+RAIZ="$(cd -P "$(dirname "$fuente")" && pwd)"
+
+if [[ "${1:-}" == "--version" ]]; then
+    version="$(sed -n 's/^version = "\(.*\)"$/\1/p' "$RAIZ/sistema/pyproject.toml" | head -n 1)"
+    echo "torneo ${version}"
+    exit 0
+fi
+
+export TORNEO_HUSO
+TORNEO_HUSO="$(date +%z)"
+
+sin_docker=0
+ayuda=0
+comando="" # primer argumento que no es opción (el comando del CLI)
+for arg in "$@"; do
+    [[ "$arg" == "--sin-docker" ]] && sin_docker=1
+    [[ "$arg" == "-h" || "$arg" == "--help" ]] && ayuda=1
+    [[ -z "$comando" && "$arg" != -* ]] && comando="$arg"
+done
+
+# --- Sin Docker: tu Python, directo ----------------------------------------------------------
+if ((sin_docker)); then
+    py="${TORNEO_PYTHON:-}"
+    [[ -z "$py" && -x "$RAIZ/.venv/bin/python" ]] && py="$RAIZ/.venv/bin/python"
+    [[ -z "$py" ]] && py="$(command -v python3 || true)"
+    if [[ -z "$py" ]] ||
+        ! "$py" -c 'import sys, numpy, scipy, numba; assert sys.version_info >= (3, 12)' 2>/dev/null; then
+        error "Para --sin-docker necesitas Python 3.12 o más nuevo con numpy, scipy y numba:
+    python3 -m pip install -r sistema/requirements.txt
+  O quita --sin-docker para usar Docker (recomendado)."
+    fi
+    PYTHONPATH="$RAIZ/sistema${PYTHONPATH:+:$PYTHONPATH}" exec "$py" -m cli "$@"
+fi
+
+# --- Con Docker --------------------------------------------------------------------------------
+command -v docker >/dev/null 2>&1 ||
+    error "No encontré Docker. Instálalo (ver docs/empezar.md), usa Codespaces, o prueba con --sin-docker."
+if ! info="$(docker info 2>&1)"; then
+    if [[ "$info" == *"ermission denied"* ]]; then
+        error "Tu usuario no tiene permiso para usar Docker. En Linux:
+    sudo usermod -aG docker \$USER
+  y luego cierra sesión y vuelve a entrar (o reinicia). No uses sudo ./torneo: tus
+  resultados quedarían como archivos de root."
+    fi
+    error "Docker no responde. Abre Docker Desktop (o inicia el servicio) y espera a que arranque."
+fi
+docker compose version >/dev/null 2>&1 ||
+    error "Falta «docker compose» (viene con Docker Desktop; en Linux instala docker-compose-plugin)."
+
+cd "$RAIZ"
+
+# ./torneo construir: reconstruye las dos imágenes aunque estén al día y luego corre
+# «calentar» (el CLI recibe «construir», que hace lo mismo que «calentar»).
+if [[ "$comando" == construir ]] && ((!ayuda)); then
+    [[ -z "${TORNEO_IMAGEN_DIGEST:-}" ]] ||
+        error "TORNEO_IMAGEN_DIGEST está definida (liga oficial): ahí no se construye nada."
+    echo "Reconstruyendo desde cero las imágenes del torneo (CLI y bots) y la caché de numba."
+    echo "Tarda unos minutos (más la primera vez: descarga Python y las librerías)."
+    export TORNEO_CONSTRUIR=1
+fi
+
+# Huella (etiqueta torneo.fuente) del código que debe tener cada imagen: si la imagen local
+# no la tiene (no existe, o cambió sistema/), se reconstruye.
+HUELLA_BOTS="$(sistema/herramientas/huella.sh bot)"
+HUELLA_CLI="$(sistema/herramientas/huella.sh cli)"
+
+etiqueta_de() { # <imagen>: su torneo.fuente (vacía si no existe o no tiene)
+    docker image inspect -f '{{index .Config.Labels "torneo.fuente"}}' "$1" 2>/dev/null || true
+}
+
+asegurar_imagen() { # <nombre local> <etapa del Dockerfile> <huella>
+    local nombre="$1" etapa="$2" esperada="$3"
+    if [[ -n "${TORNEO_IMAGEN_DIGEST:-}" ]]; then
+        # Liga oficial: las imágenes ya vienen cargadas; nunca se construyen.
+        [[ "$(etiqueta_de "$nombre")" == "$esperada" ]] ||
+            error "La imagen $nombre no está cargada o no corresponde a este código (TORNEO_IMAGEN_DIGEST está definida: en la liga no se construye nada). Carga las imágenes del job «imagenes»."
+        return 0
+    fi
+    [[ "${TORNEO_CONSTRUIR:-0}" != 1 && "$(etiqueta_de "$nombre")" == "$esperada" ]] && return 0
+    if [[ -z "${AVISO_IMAGENES:-}" ]]; then
+        AVISO_IMAGENES=1
+        echo "Construyendo las imágenes del torneo en tu máquina (la primera vez o tras una actualización del curso; tarda unos minutos)..."
+    fi
+    echo "  · $nombre"
+    docker build -f sistema/Dockerfile --target "$etapa" --label "torneo.fuente=$esperada" -t "$nombre" . ||
+        error "No se pudo construir la imagen $nombre. Revisa tu conexión a internet (descarga Python y las librerías) y vuelve a intentarlo con ./torneo construir."
+}
+
+asegurar_imagen "$IMAGEN_BOTS" bot "$HUELLA_BOTS"
+asegurar_imagen "$IMAGEN_CLI" cli "$HUELLA_CLI"
+
+# Linux: el CLI corre con tu usuario (resultados/ queda tuyo, no de root) y con el grupo
+# dueño del socket de Docker. Mac (Docker Desktop, colima): corre como root dentro de la
+# máquina virtual de Docker, que de todos modos guarda los archivos a tu nombre.
+export TORNEO_RAIZ_HOST="$RAIZ" TORNEO_UID TORNEO_GID TORNEO_DOCKER_GID
+if [[ "$(uname -s)" == Darwin ]]; then
+    TORNEO_UID=0 TORNEO_GID=0 TORNEO_DOCKER_GID=0
+else
+    TORNEO_UID="$(id -u)"
+    TORNEO_GID="$(id -g)"
+    TORNEO_DOCKER_GID="$(stat -c %g /var/run/docker.sock 2>/dev/null || echo 0)"
+    if [[ "$TORNEO_UID" == 0 && -n "${SUDO_USER:-}" ]]; then
+        echo "⚠ Usaste sudo: lo que se escriba en resultados/ quedará de root. Mejor agrega tu usuario al grupo docker (sudo usermod -aG docker \$USER) y corre ./torneo sin sudo." >&2
+    fi
+fi
+
+# Misma carpeta dentro del contenedor (para que las rutas relativas funcionen).
+relativa=""
+case "$aqui/" in
+"$RAIZ"/*) relativa="${aqui#"$RAIZ"}" ;;
+esac
+
+# TORNEO_LIMITES con ruta absoluta del anfitrión → la misma ruta dentro del contenedor.
+if [[ "${TORNEO_LIMITES:-}" == /* ]]; then
+    case "$TORNEO_LIMITES" in
+    "$RAIZ"/*) export TORNEO_LIMITES="/torneo/${TORNEO_LIMITES#"$RAIZ"/}" ;;
+    *) error "TORNEO_LIMITES debe apuntar a un archivo dentro del repo ($RAIZ)." ;;
+    esac
+fi
+
+sin_tty=()
+[[ -t 0 && -t 1 ]] || sin_tty=(-T)
+silencio=() # sin los mensajes «Container ... Created» de compose (si su versión lo permite)
+docker compose --progress quiet version >/dev/null 2>&1 && silencio=(--progress quiet)
+exec docker compose ${silencio[@]+"${silencio[@]}"} --project-directory "$RAIZ" -f "$RAIZ/docker-compose.yml" \
+    run --rm ${sin_tty[@]+"${sin_tty[@]}"} -w "/torneo$relativa" torneo python -m cli "$@"

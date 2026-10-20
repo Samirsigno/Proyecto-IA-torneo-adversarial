@@ -1,0 +1,11 @@
+# Límites públicos del torneo. Valen igual en tu máquina y en la liga.
+# Cada bot corre además con 1 núcleo de CPU.
+
+reloj_s = 30.0          # reloj total de tu bot por partida, en segundos
+preparar_s = 10.0       # tiempo máximo de `preparar` (incluye importar strategy.py)
+memoria_mb = 1024       # memoria máxima del contenedor de tu bot
+carpeta_mb = 100        # tamaño máximo de tu carpeta en estudiantes/
+archivo_mb = 50         # tamaño máximo de cada archivo
+salida_kb = 64          # texto impreso máximo por partida
+requirements_mb = 300   # tamaño máximo de lo que instala tu requirements.txt
+escala_limites = 1.0    # multiplica reloj y memoria (no `preparar`)

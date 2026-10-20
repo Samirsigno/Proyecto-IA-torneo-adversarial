@@ -1,0 +1,104 @@
+# Prueba de tu bot en GitHub (corre solo en TU repo privado, con tus minutos gratis).
+# Se dispara cuando subes cambios a estudiantes/ en main, o a mano desde la pestaña
+# Actions («prueba» → «Run workflow»). Valida tu carpeta y juega contra
+# random y montecarlo con los límites oficiales. Resultado: el resumen del job y el
+# artifact «repeticiones» (ábrelo con index.html).
+name: prueba
+
+on:
+  push:
+    branches: [main]
+    paths: ["estudiantes/**"]
+  workflow_dispatch:
+    inputs:
+      partidas:
+        description: "Partidas contra cada rival (random y montecarlo)"
+        type: number
+        default: 2
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prueba-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probar:
+    # En el repo del curso no corre: solo en los repos de los alumnos.
+    if: github.repository != 'raya-lucaria/ia_o26_torneo_adversarial'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PARTIDAS: ${{ inputs.partidas || 2 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Buscar tu carpeta de equipo
+        run: |
+          : >"$RUNNER_TEMP/equipos.txt"
+          for d in estudiantes/*/; do
+            n="$(basename "$d")"
+            case "$n" in
+              random | montecarlo | humano | tier_* | _*) continue ;;
+            esac
+            if ! [[ "$n" =~ ^[a-z0-9_]{3,30}$ ]]; then
+              msg="Se omite estudiantes/$n/: el nombre debe tener de 3 a 30 caracteres, solo minúsculas sin acentos, dígitos y guion bajo (ej.: los_alfa_beta). Renombra la carpeta."
+              echo "::warning::$msg"
+              echo "- ⚠️ $msg" >>"$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+            echo "$n" >>"$RUNNER_TEMP/equipos.txt"
+          done
+          if [[ ! -s "$RUNNER_TEMP/equipos.txt" ]]; then
+            msg="No encontré tu carpeta en estudiantes/. Copia estudiantes/montecarlo a estudiantes/<tu_equipo>/ y súbela (ver docs/empezar.md)."
+            echo "::error::$msg"
+            echo "## ⚠️ $msg" >>"$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "Equipos:"
+          cat "$RUNNER_TEMP/equipos.txt"
+
+      - name: Preparar Docker y la caché de numba
+        # ./torneo construye aquí las imágenes del torneo (nada se descarga de un registro;
+        # unos minutos) y llena la caché de numba.
+        run: ./torneo calentar
+
+      - name: Validar, jugar y resumir
+        run: |
+          readarray -t equipos <"$RUNNER_TEMP/equipos.txt"
+          .github/scripts/memoria.sh memoria.log &
+          muestreo=$!
+          fallas=0
+          for eq in "${equipos[@]}"; do
+            echo "::notice::Probando estudiantes/$eq/ (validación en modo prueba: lo que falte para entregar sale como aviso ⚠)."
+            echo "::group::Validar $eq"
+            if ./torneo validar "$eq"; then valido=ok; else valido=falla; fallas=$((fallas + 1)); fi
+            echo "::endgroup::"
+            for rival in random montecarlo; do
+              echo "::group::$eq contra $rival ($PARTIDAS partidas)"
+              ./torneo jugar "$eq" "$rival" --partidas "$PARTIDAS" ||
+                echo "::warning::No se pudieron jugar las partidas de $eq contra $rival."
+              echo "::endgroup::"
+            done
+            python3 .github/scripts/resumen_prueba.py --equipo "$eq" --validacion "$valido" \
+              --resultados resultados --memoria memoria.log >>"$GITHUB_STEP_SUMMARY"
+          done
+          kill "$muestreo" 2>/dev/null || true
+          if ((fallas)); then
+            echo "::error::Tu carpeta NO pasa la validación. Abre el grupo «Validar» de arriba para ver qué arreglar."
+            exit 1
+          fi
+
+      - name: Subir repeticiones
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repeticiones
+          path: |
+            resultados/
+            !resultados/.cache/
+          if-no-files-found: ignore
+          retention-days: 14

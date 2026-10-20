@@ -1,0 +1,11 @@
+# Calificación que obtienes al ganarle a cada rival de referencia en la liga.
+# «Ganarle» = terminar con estrictamente más puntos que él.
+# Los lugares 1 a 3 entre equipos de alumnos obtienen 10.
+
+random = 1
+montecarlo = 3
+tier_1 = 5
+tier_2 = 6
+tier_3 = 7
+tier_4 = 8.5
+tier_5 = 10

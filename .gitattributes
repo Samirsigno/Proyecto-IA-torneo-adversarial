@@ -1,0 +1,14 @@
+# Finales de línea LF siempre (también en clones de Windows): ./torneo y los .sh
+# fallan con CRLF.
+* text=auto eol=lf
+*.svg text
+*.npy binary
+*.npz binary
+*.bin binary
+*.pkl binary
+*.joblib binary
+*.gz binary
+*.png binary
+*.jpg binary
+# Los datos de los equipos van byte a byte (su hash debe coincidir con el SHA registrado).
+estudiantes/*/data/** -text

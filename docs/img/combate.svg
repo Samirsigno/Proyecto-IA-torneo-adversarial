@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 650" width="460" height="650" role="img" aria-labelledby="t d">
+<title id="t">Combate</title>
+<desc id="d">Un peón blanco en e4 con dos peones de apoyo ataca a un peón negro en f5 con un apoyo: diferencia +1, probabilidad de ganar 0.65. Tabla: diferencia -2 a +2, probabilidades 0.20, 0.35, 0.50, 0.65, 0.80.</desc>
+<rect x="1" y="1" width="458" height="648" rx="14" fill="#fbf8f1" stroke="#d8cfbd" stroke-width="2"/>
+<text x="230" y="32" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="20" fill="#2b2b2b" text-anchor="middle" font-weight="bold">Combate: el apoyo decide</text>
+<rect x="74" y="334" width="52" height="52" fill="#f0e2c4"/>
+<rect x="126" y="334" width="52" height="52" fill="#c49a6c"/>
+<rect x="178" y="334" width="52" height="52" fill="#f0e2c4"/>
+<rect x="230" y="334" width="52" height="52" fill="#c49a6c"/>
+<rect x="282" y="334" width="52" height="52" fill="#f0e2c4"/>
+<rect x="334" y="334" width="52" height="52" fill="#c49a6c"/>
+<rect x="74" y="282" width="52" height="52" fill="#c49a6c"/>
+<rect x="126" y="282" width="52" height="52" fill="#f0e2c4"/>
+<rect x="178" y="282" width="52" height="52" fill="#c49a6c"/>
+<rect x="230" y="282" width="52" height="52" fill="#f0e2c4"/>
+<rect x="282" y="282" width="52" height="52" fill="#c49a6c"/>
+<rect x="334" y="282" width="52" height="52" fill="#f0e2c4"/>
+<rect x="74" y="230" width="52" height="52" fill="#f0e2c4"/>
+<rect x="126" y="230" width="52" height="52" fill="#c49a6c"/>
+<rect x="178" y="230" width="52" height="52" fill="#f0e2c4"/>
+<rect x="230" y="230" width="52" height="52" fill="#c49a6c"/>
+<rect x="282" y="230" width="52" height="52" fill="#f0e2c4"/>
+<rect x="334" y="230" width="52" height="52" fill="#c49a6c"/>
+<rect x="74" y="178" width="52" height="52" fill="#c49a6c"/>
+<rect x="126" y="178" width="52" height="52" fill="#f0e2c4"/>
+<rect x="178" y="178" width="52" height="52" fill="#c49a6c"/>
+<rect x="230" y="178" width="52" height="52" fill="#f0e2c4"/>
+<rect x="282" y="178" width="52" height="52" fill="#c49a6c"/>
+<rect x="334" y="178" width="52" height="52" fill="#f0e2c4"/>
+<rect x="74" y="126" width="52" height="52" fill="#f0e2c4"/>
+<rect x="126" y="126" width="52" height="52" fill="#c49a6c"/>
+<rect x="178" y="126" width="52" height="52" fill="#f0e2c4"/>
+<rect x="230" y="126" width="52" height="52" fill="#c49a6c"/>
+<rect x="282" y="126" width="52" height="52" fill="#f0e2c4"/>
+<rect x="334" y="126" width="52" height="52" fill="#c49a6c"/>
+<rect x="74" y="74" width="52" height="52" fill="#c49a6c"/>
+<rect x="126" y="74" width="52" height="52" fill="#f0e2c4"/>
+<rect x="178" y="74" width="52" height="52" fill="#c49a6c"/>
+<rect x="230" y="74" width="52" height="52" fill="#f0e2c4"/>
+<rect x="282" y="74" width="52" height="52" fill="#c49a6c"/>
+<rect x="334" y="74" width="52" height="52" fill="#f0e2c4"/>
+<rect x="74" y="74" width="312" height="312" fill="none" stroke="#2b2b2b" stroke-width="1.5"/>
+<text x="100" y="67" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">c</text>
+<text x="100" y="403" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">c</text>
+<text x="152" y="67" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">d</text>
+<text x="152" y="403" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">d</text>
+<text x="204" y="67" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">e</text>
+<text x="204" y="403" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">e</text>
+<text x="256" y="67" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">f</text>
+<text x="256" y="403" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">f</text>
+<text x="308" y="67" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">g</text>
+<text x="308" y="403" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">g</text>
+<text x="360" y="67" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">h</text>
+<text x="360" y="403" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">h</text>
+<text x="64" y="364.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">2</text>
+<text x="396" y="364.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">2</text>
+<text x="64" y="312.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">3</text>
+<text x="396" y="312.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">3</text>
+<text x="64" y="260.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">4</text>
+<text x="396" y="260.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">4</text>
+<text x="64" y="208.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">5</text>
+<text x="396" y="208.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">5</text>
+<text x="64" y="156.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">6</text>
+<text x="396" y="156.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">6</text>
+<text x="64" y="104.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">7</text>
+<text x="396" y="104.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="bold">7</text>
+<rect x="232" y="180" width="48" height="48" fill="#ee9a9a" stroke="#d33a3a" stroke-width="3"/>
+<circle cx="152" cy="308" r="17.2" fill="#ffffff" stroke="#2b2b2b" stroke-width="2"/><circle cx="152" cy="308" r="9.4" fill="none" stroke="#e5e0d3" stroke-width="1.5" opacity="0.55"/>
+<circle cx="256" cy="308" r="17.2" fill="#ffffff" stroke="#2b2b2b" stroke-width="2"/><circle cx="256" cy="308" r="9.4" fill="none" stroke="#e5e0d3" stroke-width="1.5" opacity="0.55"/>
+<circle cx="204" cy="256" r="17.2" fill="#ffffff" stroke="#2b2b2b" stroke-width="2"/><circle cx="204" cy="256" r="9.4" fill="none" stroke="#e5e0d3" stroke-width="1.5" opacity="0.55"/>
+<circle cx="256" cy="204" r="17.2" fill="#2f2f33" stroke="#000000" stroke-width="2"/><circle cx="256" cy="204" r="9.4" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.55"/>
+<circle cx="308" cy="152" r="17.2" fill="#2f2f33" stroke="#000000" stroke-width="2"/><circle cx="308" cy="152" r="9.4" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.55"/>
+<line x1="166.1" y1="293.9" x2="189.9" y2="270.1" stroke="#2f6fcb" stroke-width="3.5" stroke-dasharray="7 6" stroke-linecap="round"/>
+<line x1="241.9" y1="293.9" x2="218.1" y2="270.1" stroke="#2f6fcb" stroke-width="3.5" stroke-dasharray="7 6" stroke-linecap="round"/>
+<line x1="293.9" y1="166.1" x2="270.1" y2="189.9" stroke="#d33a3a" stroke-width="3.5" stroke-dasharray="7 6" stroke-linecap="round"/>
+<line x1="218.1" y1="241.9" x2="231.3" y2="228.7" stroke="#d33a3a" stroke-width="5" stroke-linecap="round"/><polygon points="241.9,218.1 236.9,234.4 225.6,223.1" fill="#d33a3a"/>
+<text x="171" y="261.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="18" fill="#2b2b2b" text-anchor="middle" font-weight="bold">A</text>
+<text x="289" y="209.5" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="18" fill="#2b2b2b" text-anchor="middle" font-weight="bold">D</text>
+<circle cx="169" cy="291" r="11" fill="#2f6fcb" stroke="#ffffff" stroke-width="2"/><text x="169" y="295" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="11" fill="#ffffff" text-anchor="middle" font-weight="bold">+1</text>
+<circle cx="273" cy="291" r="11" fill="#2f6fcb" stroke="#ffffff" stroke-width="2"/><text x="273" y="295" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="11" fill="#ffffff" text-anchor="middle" font-weight="bold">+1</text>
+<circle cx="325" cy="135" r="11" fill="#d33a3a" stroke="#ffffff" stroke-width="2"/><text x="325" y="139" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="11" fill="#ffffff" text-anchor="middle" font-weight="bold">+1</text>
+<text x="230" y="422" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="14" fill="#2b2b2b" text-anchor="middle" font-weight="bold">A ataca a D: apoyo 2 contra 1, diferencia +1</text>
+<text x="230" y="444" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="normal">Apoyo = tus peones en las 2 diagonales de atrás</text>
+<text x="230" y="480" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="normal">p = 0.5 + 0.15 × diferencia</text>
+<text x="230" y="462" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="middle" font-weight="normal">Líneas punteadas: azul = apoyo de A · rojo = apoyo de D</text>
+<rect x="70" y="496" width="320" height="38" rx="19" fill="#f8dede" stroke="#d33a3a" stroke-width="2"/><text x="230" y="521" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="17" fill="#2b2b2b" text-anchor="middle" font-weight="bold">Probabilidad de ganar: p = 0.65</text>
+<text x="40" y="556" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="start" font-weight="normal">Diferencia de apoyo (A − D) y probabilidad p:</text>
+<text x="80" y="591" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="end" font-weight="normal">diferencia</text>
+<rect x="92" y="572" width="58" height="28" rx="5" fill="#ffffff" stroke="#d8cfbd" stroke-width="1.5"/>
+<text x="121" y="591" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="14" fill="#2b2b2b" text-anchor="middle" font-weight="bold">−2</text>
+<rect x="154" y="572" width="58" height="28" rx="5" fill="#ffffff" stroke="#d8cfbd" stroke-width="1.5"/>
+<text x="183" y="591" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="14" fill="#2b2b2b" text-anchor="middle" font-weight="bold">−1</text>
+<rect x="216" y="572" width="58" height="28" rx="5" fill="#ffffff" stroke="#d8cfbd" stroke-width="1.5"/>
+<text x="245" y="591" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="14" fill="#2b2b2b" text-anchor="middle" font-weight="bold">0</text>
+<rect x="278" y="572" width="58" height="28" rx="5" fill="#d33a3a" stroke="#d8cfbd" stroke-width="1.5"/>
+<text x="307" y="591" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="14" fill="#ffffff" text-anchor="middle" font-weight="bold">+1</text>
+<rect x="340" y="572" width="58" height="28" rx="5" fill="#ffffff" stroke="#d8cfbd" stroke-width="1.5"/>
+<text x="369" y="591" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="14" fill="#2b2b2b" text-anchor="middle" font-weight="bold">+2</text>
+<text x="80" y="625" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="13" fill="#6b6558" text-anchor="end" font-weight="normal">p</text>
+<rect x="92" y="606" width="58" height="28" rx="5" fill="#ffffff" stroke="#d8cfbd" stroke-width="1.5"/>
+<text x="121" y="625" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="14" fill="#2b2b2b" text-anchor="middle" font-weight="bold">0.20</text>
+<rect x="154" y="606" width="58" height="28" rx="5" fill="#ffffff" stroke="#d8cfbd" stroke-width="1.5"/>
+<text x="183" y="625" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="14" fill="#2b2b2b" text-anchor="middle" font-weight="bold">0.35</text>
+<rect x="216" y="606" width="58" height="28" rx="5" fill="#ffffff" stroke="#d8cfbd" stroke-width="1.5"/>
+<text x="245" y="625" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="14" fill="#2b2b2b" text-anchor="middle" font-weight="bold">0.50</text>
+<rect x="278" y="606" width="58" height="28" rx="5" fill="#d33a3a" stroke="#d8cfbd" stroke-width="1.5"/>
+<text x="307" y="625" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="14" fill="#ffffff" text-anchor="middle" font-weight="bold">0.65</text>
+<rect x="340" y="606" width="58" height="28" rx="5" fill="#ffffff" stroke="#d8cfbd" stroke-width="1.5"/>
+<text x="369" y="625" font-family="'DejaVu Sans', Verdana, Arial, Helvetica, sans-serif" font-size="14" fill="#2b2b2b" text-anchor="middle" font-weight="bold">0.80</text>
+</svg>

@@ -1,0 +1,11 @@
+# Lo que nunca entra al contexto de construcción de Docker.
+.git
+privado
+.superpowers
+resultados
+**/__pycache__
+**/*.py[cod]
+**/.venv
+**/.pytest_cache
+**/.ruff_cache
+**/*.egg-info

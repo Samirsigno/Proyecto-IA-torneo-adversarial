@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{TITULO}}</title>
+<style>
+:root{--bg:#f4f5f8;--fg:#1c2330;--mut:#667085;--card:#fff;--line:#dfe3ea;--acc:#2457d6;
+--sq1:#ecdcb8;--sq2:#b58b5c;--pw:#fbfbf8;--pws:#3a3f4a;--pb:#2a2e38;--pbs:#0d0f14;
+--badge:#146c3a;--badge0:#4b5563;--onacc:#fff;--good:#1f9d55;--bad:#d64545;--warn:#c27a00;--hl:rgba(255,214,0,.45)}
+@media (prefers-color-scheme:dark){:root{--bg:#12161d;--fg:#e6e9ef;--mut:#98a2b3;--card:#1b212b;--line:#2d3542;--acc:#7aa2ff;
+--sq1:#8a7a5c;--sq2:#4d3f2e;--pw:#f1f1ea;--pws:#0d0f14;--pb:#14171d;--pbs:#c9ced8;
+--badge:#146c3a;--badge0:#4b5563;--onacc:#0b1220;--good:#4cc38a;--bad:#ff7a7a;--warn:#f0b24a;--hl:rgba(255,214,0,.35)}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{padding:12px 16px;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline}
+h1{font-size:1.15rem;margin:0}
+.res{color:var(--mut)}
+main{display:grid;grid-template-columns:minmax(300px,640px) minmax(320px,1fr);gap:16px;padding:0 16px 16px;align-items:start}
+@media (max-width:820px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
+#tablero{width:100%;height:auto;display:block;touch-action:manipulation}
+.jug{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:4px 2px;font-variant-numeric:tabular-nums}
+.jug b{font-size:1rem}.turno{outline:2px solid var(--acc);border-radius:6px}
+.ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+button,select{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;min-height:36px}
+button:hover{border-color:var(--acc)}button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--acc)}
+button.on{background:var(--acc);color:var(--onacc);border-color:var(--acc)}
+.capas{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;color:var(--mut)}
+.capas label{display:flex;gap:4px;align-items:center;cursor:pointer}
+h2{font-size:.9rem;margin:0 0 6px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.col{display:grid;gap:12px}
+#lista{max-height:280px;overflow:auto;margin:0;padding:0;list-style:none}
+#lista li{display:flex;gap:8px;padding:3px 6px;border-radius:6px;cursor:pointer;font-variant-numeric:tabular-nums}
+#lista li:hover{background:var(--bg)}#lista li.act{background:var(--acc);color:var(--onacc)}
+#lista .n{color:var(--mut);min-width:2.2em}#lista li.act .n{color:#fff}
+.g{color:var(--good)}.p{color:var(--bad)}.act .g,.act .p{color:#fff}
+pre{margin:0;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);padding:8px;border-radius:6px}
+.tabs{display:flex;gap:6px;margin-bottom:6px}
+#eval{width:100%;height:110px;display:block;cursor:pointer}
+.mut{color:var(--mut)}
+</style>
+</head>
+<body>
+<header><h1 id="titulo"></h1><span class="res" id="resumen"></span></header>
+<main>
+<section>
+ <div class="card">
+  <div class="jug" id="jn"></div>
+  <svg id="tablero" viewBox="0 0 10 10" role="img" aria-label="Tablero"></svg>
+  <div class="jug" id="jb"></div>
+  <div class="ctl">
+   <button id="ini" title="Inicio (Inicio)" aria-label="Inicio">⏮</button>
+   <button id="ant" title="Anterior (←)" aria-label="Anterior">◀</button>
+   <button id="rep" title="Reproducir (Espacio)" aria-label="Reproducir">▶ Reproducir</button>
+   <button id="sig" title="Siguiente (→)" aria-label="Siguiente">▶|</button>
+   <button id="fin" title="Final (Fin)" aria-label="Final">⏭</button>
+   <button id="comb" title="Saltar al siguiente combate (C)">Siguiente combate</button>
+   <label class="mut">Velocidad <select id="vel"><option value="1500">Lenta</option><option value="700" selected>Normal</option><option value="250">Rápida</option><option value="80">Muy rápida</option></select></label>
+  </div>
+  <div class="capas">
+   <label><input type="checkbox" id="cApoyo"> Apoyo</label>
+   <label><input type="checkbox" id="cP"> p de cada ataque</label>
+   <label><input type="checkbox" id="cLeg"> Jugadas legales</label>
+  </div>
+ </div>
+</section>
+<section class="col">
+ <div class="card"><h2>Jugada <span id="pos"></span></h2><div id="det"></div></div>
+ <div class="card"><h2>Info del bot en esta jugada</h2><pre id="info"></pre></div>
+ <div class="card" id="cEval"><h2>Evaluación del bot</h2><svg id="eval" tabindex="0" aria-label="Gráfica de evaluación: flechas izquierda y derecha cambian de jugada" viewBox="0 0 300 110" preserveAspectRatio="none"></svg><div class="mut" id="evalLeyenda"></div></div>
+ <div class="card"><h2>Jugadas</h2><ul id="lista"></ul></div>
+ <div class="card"><h2>Salida impresa del bot</h2><div class="tabs"><button id="sB">Blancas</button><button id="sN">Negras</button></div><pre id="salida"></pre></div>
+</section>
+</main>
+<script id="datos" type="application/json">{{DATOS}}</script>
+<script>
+"use strict";
+const D = JSON.parse(document.getElementById("datos").textContent);
+const R = D.registro, F = D.fotos, J = R.jugadas, N = J.length, LIM = D.limite_reloj;
+const $ = id => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+const COL = "abcdefghi";
+const nombre = c => COL[c % 9] + (Math.floor(c / 9) + 1);
+const pos2xy = c => [c % 9 + 0.5 + 0.5, 8 - Math.floor(c / 9) + 0.5 + 0.5]; // centro de casilla en el viewBox 10x10
+function el(tag, attrs, texto) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs || {}) e.setAttribute(k, attrs[k]);
+  if (texto !== undefined) e.textContent = texto;
+  return e;
+}
+function ht(tag, clase, texto) {
+  const e = document.createElement(tag);
+  if (clase) e.className = clase;
+  if (texto !== undefined) e.textContent = texto;
+  return e;
+}
+let pos = 0, timer = null, salidaDe = "blancas";
+const capas = {apoyo: false, p: false, leg: false};
+
+$("titulo").textContent = R.meta.blancas + " (blancas) vs " + R.meta.negras + " (negras)";
+const MOT = {puntos: "llegó a 3 puntos", sin_jugadas: "el rival se quedó sin jugadas", reloj: "se acabó el reloj",
+  ilegal: "jugada ilegal", error: "error del bot", preparar: "falló en preparar", memoria: "excedió la memoria", salida: "excedió la salida impresa"};
+$("resumen").textContent = "Ganó: " + (R.ganador || "—") + " · " + (MOT[R.motivo] || R.motivo) +
+  " · Puntos " + R.puntos.blancas + "–" + R.puntos.negras + " · Pareja " + R.meta.pareja + ", juego " + R.meta.juego;
+
+// Tablero fijo (casillas y coordenadas)
+const svg = $("tablero");
+for (let c = 0; c < 81; c++) {
+  const [x, y] = pos2xy(c);
+  svg.appendChild(el("rect", {x: x - .5, y: y - .5, width: 1, height: 1, fill: ((c % 9) + Math.floor(c / 9)) % 2 ? "var(--sq1)" : "var(--sq2)"}));
+}
+for (let i = 0; i < 9; i++) {
+  svg.appendChild(el("text", {x: i + 1, y: 9.85, "text-anchor": "middle", "font-size": .32, fill: "var(--mut)"}, COL[i]));
+  svg.appendChild(el("text", {x: .25, y: 8 - i + 1 + .11, "text-anchor": "middle", "font-size": .32, fill: "var(--mut)"}, String(i + 1)));
+}
+const dinamico = el("g"); svg.appendChild(dinamico);
+
+function flecha(o, d, color, ancho, extra) {
+  const [x1, y1] = pos2xy(o), [x2, y2] = pos2xy(d);
+  const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+  const g = el("g", {opacity: extra || 1});
+  const xe = x2 - ux * .28, ye = y2 - uy * .28;
+  g.appendChild(el("line", {x1: x1 + ux * .25, y1: y1 + uy * .25, x2: xe, y2: ye, stroke: color, "stroke-width": ancho, "stroke-linecap": "round"}));
+  g.appendChild(el("polygon", {points: `${x2 - ux * .08},${y2 - uy * .08} ${xe - uy * .16},${ye + ux * .16} ${xe + uy * .16},${ye - ux * .16}`, fill: color}));
+  return g;
+}
+
+function dibujaTablero() {
+  const f = F[pos], g = dinamico;
+  g.replaceChildren();
+  const ult = pos > 0 ? J[pos - 1] : null;
+  if (ult) {
+    const [o, d] = ult.jugada.split("-").map(t => COL.indexOf(t[0]) + (Number(t[1]) - 1) * 9);
+    for (const c of [o, d]) {
+      const [x, y] = pos2xy(c);
+      g.appendChild(el("rect", {x: x - .5, y: y - .5, width: 1, height: 1, fill: "var(--hl)"}));
+    }
+  }
+  if (capas.leg) {
+    for (const [o, d, p, a] of f.legales) g.appendChild(flecha(o, d, a ? "var(--bad)" : "var(--acc)", .06, .55));
+  }
+  const pieza = (c, color) => {
+    const [x, y] = pos2xy(c);
+    const gr = el("g");
+    gr.appendChild(el("circle", {cx: x, cy: y, r: .36, fill: color === "b" ? "var(--pw)" : "var(--pb)", stroke: color === "b" ? "var(--pws)" : "var(--pbs)", "stroke-width": .05}));
+    if (capas.apoyo) {
+      const a = f.apoyo[c];
+      gr.appendChild(el("circle", {cx: x + .27, cy: y - .27, r: .17, fill: a ? "var(--badge)" : "var(--badge0)"}));
+      gr.appendChild(el("text", {x: x + .27, y: y - .27 + .07, "text-anchor": "middle", "font-size": .22, "font-weight": 700, fill: "#fff"}, String(a)));
+    }
+    g.appendChild(gr);
+  };
+  f.b.forEach(c => pieza(c, "b")); f.n.forEach(c => pieza(c, "n"));
+  if (capas.p) {
+    // Cada probabilidad va junto a SU flecha (a media distancia entre origen y destino):
+    // dos ataques al mismo peón no se enciman.
+    for (const [o, d, p, a] of f.legales) if (a) {
+      if (!capas.leg) g.appendChild(flecha(o, d, "var(--bad)", .06, .55));
+      const [x1, y1] = pos2xy(o), [x2, y2] = pos2xy(d), x = (x1 + x2) / 2, y = (y1 + y2) / 2;
+      g.appendChild(el("rect", {x: x - .3, y: y - .15, width: .6, height: .3, rx: .08, fill: "var(--card)", stroke: "var(--bad)", "stroke-width": .03}));
+      g.appendChild(el("text", {x, y: y + .07, "text-anchor": "middle", "font-size": .22, "font-weight": 700, fill: "var(--fg)"}, Math.round(p * 100) + "%"));
+    }
+  }
+  if (ult) {
+    const [o, d] = ult.jugada.split("-").map(t => COL.indexOf(t[0]) + (Number(t[1]) - 1) * 9);
+    g.appendChild(flecha(o, d, ult.combate ? (ult.combate.gano ? "var(--good)" : "var(--bad)") : "var(--warn)", .1));
+  }
+}
+
+function reloj(color) {
+  // Al final: el reloj del árbitro, que incluye el turno perdido (p. ej. por reloj).
+  if (pos === N && R.reloj_usado && typeof R.reloj_usado[color] === "number") return R.reloj_usado[color];
+  let usado = 0;
+  for (let i = pos - 1; i >= 0; i--) if (J[i].color === color) { usado = J[i].reloj; break; }
+  return usado;
+}
+function fila(id, color) {
+  const f = F[pos], cont = $(id);
+  cont.replaceChildren();
+  const idx = color === "blancas" ? 0 : 1;
+  cont.appendChild(ht("b", "", (color === "blancas" ? "Blancas " : "Negras ") + R.meta[color]));
+  const u = reloj(color);
+  cont.appendChild(ht("span", "", f.pts[idx] + " pts · " + (idx === 0 ? f.b : f.n).length + " peones · reloj " + u.toFixed(2) + "/" + LIM + " s"));
+  cont.classList.toggle("turno", f.turno === color && pos < N);
+}
+
+function detalle() {
+  const d = $("det"); d.replaceChildren();
+  $("pos").textContent = pos + " de " + N;
+  if (pos === 0) { d.appendChild(ht("div", "mut", "Posición inicial. Usa ▶ o la flecha derecha.")); $("info").textContent = "—"; return; }
+  const j = J[pos - 1];
+  d.appendChild(ht("div", "", "Jugada " + j.n + ": " + j.color + " " + j.jugada + " (" + j.tiempo.toFixed(3) + " s, reloj usado " + j.reloj.toFixed(2) + " s)"));
+  if (j.combate) {
+    const c = j.combate;
+    d.appendChild(ht("div", c.gano ? "g" : "p", "Combate: p = " + Number(c.p).toFixed(2) + ", dado u = " + Number(c.u).toFixed(3) + " → " + (c.gano ? "gana el atacante" : "pierde el atacante")));
+  } else d.appendChild(ht("div", "mut", "Sin combate."));
+  $("info").textContent = j.info ? JSON.stringify(j.info, null, 2) : "(el bot no envió info)";
+  if (pos === N) d.appendChild(ht("div", "", "Final: ganó " + (R.ganador || "—") + " (" + (MOT[R.motivo] || R.motivo) + ")."));
+}
+
+function lista() {
+  const ul = $("lista");
+  J.forEach((j, i) => {
+    const li = ht("li");
+    li.dataset.i = i + 1; li.tabIndex = 0; li.setAttribute("role", "button");
+    li.addEventListener("keydown", e => { if (e.key === "Enter") { e.stopPropagation(); e.preventDefault(); ir(i + 1); } });
+    li.appendChild(ht("span", "n", j.n + "."));
+    li.appendChild(ht("span", "", (j.color === "blancas" ? "B " : "N ") + j.jugada));
+    if (j.combate) li.appendChild(ht("span", j.combate.gano ? "g" : "p", "⚔ p=" + Number(j.combate.p).toFixed(2) + (j.combate.gano ? " ✓" : " ✗")));
+    li.addEventListener("click", () => ir(i + 1));
+    ul.appendChild(li);
+  });
+}
+
+// Gráfica de evaluación (solo si hay info.eval numérico)
+const evs = J.map((j, i) => ({i: i + 1, color: j.color, v: j.info && typeof j.info.eval === "number" ? j.info.eval : null})).filter(e => e.v !== null);
+function grafica() {
+  const s = $("eval");
+  if (!evs.length) { $("cEval").style.display = "none"; return; }
+  const W = 300, H = 110, vs = evs.map(e => e.v), lo = Math.min(...vs), hi = Math.max(...vs), r = hi - lo || 1;
+  const x = i => 6 + (N > 1 ? (i - 1) / (N - 1) : 0) * (W - 12), y = v => H - 8 - (v - lo) / r * (H - 16);
+  s.replaceChildren();
+  for (const color of ["blancas", "negras"]) {
+    const pts = evs.filter(e => e.color === color);
+    if (!pts.length) continue;
+    s.appendChild(el("polyline", {points: pts.map(e => x(e.i) + "," + y(e.v)).join(" "), fill: "none", stroke: color === "blancas" ? "var(--acc)" : "var(--warn)", "stroke-width": 1.5, "vector-effect": "non-scaling-stroke"}));
+  }
+  s.appendChild(el("line", {id: "cursor", x1: 0, x2: 0, y1: 0, y2: H, stroke: "var(--fg)", "stroke-width": 1, "vector-effect": "non-scaling-stroke"}));
+  $("evalLeyenda").textContent = "Azul: blancas · Naranja: negras · rango " + lo.toFixed(2) + " a " + hi.toFixed(2) + " · clic para ir a la jugada";
+  s.addEventListener("click", ev => {
+    const b = s.getBoundingClientRect(), t = (ev.clientX - b.left) / b.width * W;
+    ir(Math.max(0, Math.min(N, Math.round((t - 6) / (W - 12) * (N - 1)) + 1)));
+  });
+}
+function cursor() {
+  const c = document.getElementById("cursor");
+  if (!c) return;
+  const x = 6 + (N > 1 ? (Math.max(pos, 1) - 1) / (N - 1) : 0) * 288;
+  c.setAttribute("x1", x); c.setAttribute("x2", x);
+}
+
+function salida() {
+  $("salida").textContent = (R.salidas && R.salidas[salidaDe]) || "(sin salida)";
+  $("sB").classList.toggle("on", salidaDe === "blancas"); $("sN").classList.toggle("on", salidaDe === "negras");
+}
+
+function pinta() {
+  dibujaTablero(); fila("jn", "negras"); fila("jb", "blancas"); detalle(); cursor();
+  document.querySelectorAll("#lista li").forEach(li => li.classList.toggle("act", Number(li.dataset.i) === pos));
+  const act = document.querySelector("#lista li.act");
+  if (act) act.scrollIntoView({block: "nearest"});
+  $("ini").disabled = $("ant").disabled = pos === 0;
+  $("sig").disabled = $("fin").disabled = pos === N;
+  if (pos === N) parar();
+}
+function ir(p) { pos = Math.max(0, Math.min(N, p)); pinta(); try { history.replaceState(null, "", "#" + pos + hashCapas()); } catch (e) {} }
+function hashCapas() { return (capas.apoyo ? ",apoyo" : "") + (capas.p ? ",p" : "") + (capas.leg ? ",leg" : ""); }
+function parar() { if (timer) { clearInterval(timer); timer = null; } $("rep").textContent = "▶ Reproducir"; }
+function reproducir() {
+  if (timer) return parar();
+  if (pos === N) pos = 0;
+  $("rep").textContent = "⏸ Pausa";
+  timer = setInterval(() => ir(pos + 1), Number($("vel").value));
+  ir(pos + 1);
+}
+function sigCombate() {
+  parar();
+  for (let i = pos; i < N; i++) if (J[i].combate) return ir(i + 1);
+  ir(N);
+}
+$("ini").onclick = () => { parar(); ir(0); };
+$("ant").onclick = () => { parar(); ir(pos - 1); };
+$("sig").onclick = () => { parar(); ir(pos + 1); };
+$("fin").onclick = () => { parar(); ir(N); };
+$("rep").onclick = reproducir;
+$("comb").onclick = sigCombate;
+$("vel").onchange = () => { if (timer) { parar(); reproducir(); } };
+$("cApoyo").onchange = e => { capas.apoyo = e.target.checked; ir(pos); };
+$("cP").onchange = e => { capas.p = e.target.checked; ir(pos); };
+$("cLeg").onchange = e => { capas.leg = e.target.checked; ir(pos); };
+$("sB").onclick = () => { salidaDe = "blancas"; salida(); };
+$("sN").onclick = () => { salidaDe = "negras"; salida(); };
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "SELECT" || (e.target.tagName === "INPUT" && (e.key === " ")) || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key;
+  if (k === "ArrowLeft") { parar(); ir(pos - 1); }
+  else if (k === "ArrowRight") { parar(); ir(pos + 1); }
+  else if (k === "Home") { parar(); ir(0); }
+  else if (k === "End") { parar(); ir(N); }
+  else if (k === "c" || k === "C") sigCombate();
+  else if (k === " " && e.target === document.body) reproducir();
+  else return;
+  e.preventDefault();
+});
+lista(); grafica(); salida();
+// Enlace directo: #12 abre la jugada 12; #12,apoyo,p,leg enciende capas.
+{
+  const [n, ...cs] = location.hash.slice(1).split(",");
+  for (const [c, id, k] of [["apoyo", "cApoyo", "apoyo"], ["p", "cP", "p"], ["leg", "cLeg", "leg"]])
+    if (cs.includes(c)) { capas[k] = true; $(id).checked = true; }
+  pos = Math.max(0, Math.min(N, parseInt(n, 10) || 0));
+}
+pinta();
+</script>
+</body>
+</html>

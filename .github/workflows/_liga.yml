@@ -1,0 +1,520 @@
+# Liga completa, reutilizable. La llaman liga-oficial.yml (modo oficial) y liga-mini.yml
+# (modo mini: ensayo general con random y montecarlo, sin tiers ni secretos).
+#
+#   preparar → imagenes → jugar (N shards en paralelo) → publicar → pages
+#
+# Dónde corren los shards: vars.MAQUINA_LIGA (vacía = ubuntu-latest gratis; ver la
+# guía de operación del profesor). Los artifacts de un repo público los puede bajar cualquiera:
+# en modo oficial todo lo que lleva tiers o salidas de bots va cifrado con age.
+name: Liga (reutilizable)
+
+on:
+  workflow_call:
+    inputs:
+      modo:
+        description: "oficial o mini"
+        type: string
+        required: true
+      juegos_dados:
+        type: number
+        default: 2
+      shards:
+        type: number
+        default: 20
+      verbose:
+        type: boolean
+        default: false
+      aceptar_incidentes:
+        type: boolean
+        default: false
+
+defaults:
+  run:
+    shell: bash # = bash -eo pipefail: un error en `docker save | gzip | age` detiene el paso
+
+env:
+  MODO: ${{ inputs.modo }}
+  JUEGOS: ${{ inputs.juegos_dados }}
+  ESTADO: resultados/liga
+
+jobs:
+  preparar:
+    if: github.repository == 'raya-lucaria/ia_o26_torneo_adversarial' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Oficial: Environment con aprobación del profesor (guarda TIERS_DEPLOY_KEY y LIGA_LLAVE).
+    environment: ${{ inputs.modo == 'oficial' && 'liga-oficial' || 'liga-ensayo' }}
+    permissions:
+      contents: read
+    outputs:
+      shards: ${{ steps.shards.outputs.lista }}
+    steps:
+      - name: Revisar entradas
+        id: shards
+        env:
+          SHARDS: ${{ inputs.shards }}
+        run: |
+          [[ "$MODO" == oficial || "$MODO" == mini ]] || { echo "::error::modo inválido: $MODO"; exit 1; }
+          if ! [[ "$SHARDS" =~ ^[0-9]+$ ]] || ((SHARDS < 1 || SHARDS > 256)); then
+            echo "::error::shards debe ser de 1 a 256"
+            exit 1
+          fi
+          if ! [[ "$JUEGOS" =~ ^[0-9]+$ ]] || ((JUEGOS < 1)); then
+            echo "::error::juegos_dados debe ser 1 o más"
+            exit 1
+          fi
+          echo "lista=$(python3 -c "import json; print(json.dumps(list(range(1, $SHARDS + 1))))")" >>"$GITHUB_OUTPUT"
+
+      - name: Semilla maestra
+        run: |
+          mkdir -p "$RUNNER_TEMP/paquete"
+          python3 -c 'import secrets; print(secrets.randbits(63))' >"$RUNNER_TEMP/paquete/semilla"
+
+      - name: Descargar tiers y límites oficiales (paso aislado)
+        if: inputs.modo == 'oficial'
+        env:
+          TIERS_DEPLOY_KEY: ${{ secrets.TIERS_DEPLOY_KEY }}
+          REPO_TIERS: ${{ vars.REPO_TIERS }}
+        run: |
+          : "${TIERS_DEPLOY_KEY:?Falta el secreto TIERS_DEPLOY_KEY en el Environment liga-oficial}"
+          : "${REPO_TIERS:?Falta la variable REPO_TIERS (dueño/nombre del repo privado de tiers)}"
+          llave="$(mktemp)"
+          trap 'rm -f "$llave"' EXIT
+          printf '%s\n' "$TIERS_DEPLOY_KEY" >"$llave"
+          chmod 600 "$llave"
+          # Llaves públicas de github.com (https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints).
+          conocidos="$(mktemp)"
+          cat >"$conocidos" <<'HOSTS'
+          github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+          github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+          github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
+          HOSTS
+          GIT_SSH_COMMAND="ssh -i $llave -o IdentitiesOnly=yes -o UserKnownHostsFile=$conocidos -o StrictHostKeyChecking=yes" \
+            git clone --quiet --depth 1 "git@github.com:${REPO_TIERS}.git" "$RUNNER_TEMP/tiers"
+          rm -f "$llave"
+          rm -rf "$RUNNER_TEMP/tiers/.git"
+          mkdir -p "$RUNNER_TEMP/paquete/tiers"
+          shopt -s nullglob
+          tiers=("$RUNNER_TEMP"/tiers/tier_*/)
+          ((${#tiers[@]})) || { echo "::error::$REPO_TIERS no tiene carpetas tier_*/"; exit 1; }
+          cp -a "${tiers[@]}" "$RUNNER_TEMP/paquete/tiers/"
+          [[ -f "$RUNNER_TEMP/tiers/limites.toml" ]] ||
+            { echo "::error::$REPO_TIERS no tiene limites.toml (límites oficiales)"; exit 1; }
+          cp "$RUNNER_TEMP/tiers/limites.toml" "$RUNNER_TEMP/paquete/limites.toml"
+          rm -rf "$RUNNER_TEMP/tiers"
+          echo "Tiers: ${#tiers[@]}"
+
+      - name: Empaquetar (cifrado en modo oficial)
+        env:
+          LIGA_LLAVE: ${{ secrets.LIGA_LLAVE }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/salida"
+          tar -czf "$RUNNER_TEMP/salida/preparado.tar.gz" -C "$RUNNER_TEMP/paquete" .
+          rm -rf "$RUNNER_TEMP/paquete"
+          if [[ "$MODO" == oficial ]]; then
+            : "${LIGA_LLAVE:?Falta el secreto LIGA_LLAVE en el Environment liga-oficial}"
+            command -v age >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq age; }
+            llave="$(mktemp)"
+            trap 'rm -f "$llave"' EXIT
+            printf '%s\n' "$LIGA_LLAVE" >"$llave"
+            age --encrypt -r "$(age-keygen -y "$llave")" -o "$RUNNER_TEMP/salida/preparado.tar.gz.age" \
+              "$RUNNER_TEMP/salida/preparado.tar.gz"
+            rm -f "$llave" "$RUNNER_TEMP/salida/preparado.tar.gz"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: liga-preparado
+          path: ${{ runner.temp }}/salida/
+          retention-days: 3
+
+  imagenes:
+    # Construye UNA vez, desde este checkout, las imágenes base y las de los participantes
+    # que instalan algo; los shards las cargan tal cual (nunca construyen nada), así que
+    # toda la liga corre exactamente el código de main al lanzarla. Misma máquina que los
+    # shards (misma arquitectura).
+    needs: [preparar]
+    if: github.repository == 'raya-lucaria/ia_o26_torneo_adversarial' && github.ref == 'refs/heads/main'
+    runs-on: ${{ vars.MAQUINA_LIGA || 'ubuntu-latest' }}
+    timeout-minutes: 120
+    environment: ${{ inputs.modo == 'oficial' && 'liga-oficial-jugar' || 'liga-ensayo' }}
+    permissions:
+      contents: read
+    outputs:
+      digest: ${{ steps.guardar.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Instalar age
+        if: inputs.modo == 'oficial'
+        run: command -v age >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq age; }
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: liga-preparado
+          path: ${{ runner.temp }}/descargas
+
+      - name: Restaurar participantes (único paso con la llave)
+        env:
+          LIGA_LLAVE: ${{ secrets.LIGA_LLAVE }}
+        run: .github/scripts/liga_restaurar.sh "$MODO" "$RUNNER_TEMP/descargas"
+
+      - name: Construir las imágenes base desde el checkout
+        env:
+          TORNEO_CONSTRUIR: "1"
+        run: ./torneo calentar
+
+      - name: Construir imágenes de participantes con requirements.txt
+        # Una imagen que no se construye detiene la liga ANTES de empezar (nada de perder
+        # en silencio por una imagen que falta). El resumen dice qué equipo y por qué.
+        run: |
+          token="$(python3 -c 'import secrets; print(secrets.token_hex(16))')"
+          echo "::stop-commands::$token"
+          : >"$RUNNER_TEMP/registros_tiers.txt"
+          fallas=()
+          for req in estudiantes/*/requirements.txt; do
+            [[ -f "$req" ]] || continue
+            # Solo si instala algo (líneas que no son comentarios ni vacías).
+            grep -qvE '^[[:space:]]*(#.*)?$' "$req" || continue
+            eq="$(basename "$(dirname "$req")")"
+            if [[ "$eq" == tier_* ]]; then
+              # Nada de los tiers en los logs públicos: su salida va al artifact cifrado.
+              echo "== $eq" >>"$RUNNER_TEMP/registros_tiers.txt"
+              if ./torneo imagenes "$eq" >>"$RUNNER_TEMP/registros_tiers.txt" 2>&1; then
+                echo "$eq: ok"
+              else
+                echo "$eq: error (ver registros_tiers.txt.age en el artifact cifrado liga-imagenes)"
+                fallas+=("$eq: no se pudo construir su imagen (detalle en el artifact cifrado)")
+              fi
+              continue
+            fi
+            echo "== $eq"
+            if ! salida="$(./torneo imagenes "$eq" 2>&1)"; then
+              fallas+=("$eq: $(printf '%s\n' "$salida" | grep -m1 '✗' || echo 'no se pudo construir su imagen')")
+            fi
+            printf '%s\n' "$salida"
+          done
+          echo "::$token::"
+          if ((${#fallas[@]})); then
+            {
+              echo "### ❌ La liga no empezó: hay imágenes de equipo que no se construyen"
+              printf -- '- %s\n' "${fallas[@]}"
+              echo
+              echo "Corrige su requirements.txt (o sácalos de la liga) y vuelve a lanzarla."
+            } >>"$GITHUB_STEP_SUMMARY"
+            echo "::error::No se pudieron construir ${#fallas[@]} imágenes de equipo (ver el resumen)."
+            exit 1
+          fi
+
+      - name: Guardar imágenes
+        id: guardar
+        run: |
+          mapfile -t imagenes < <(docker image ls --format '{{.Repository}}:{{.Tag}}' |
+            grep -E '^(torneo-bot-base:local|torneo-base:local|torneo-bot:.+)$' | sort -u)
+          echo "Imágenes: ${#imagenes[@]}"
+          mkdir -p "$RUNNER_TEMP/imagenes"
+          if [[ "$MODO" == oficial ]]; then
+            # Solo el destinatario público (del paso de restaurar); aquí no hay llave.
+            docker save "${imagenes[@]}" | gzip -1 |
+              age --encrypt -r "$LIGA_DESTINATARIO" -o "$RUNNER_TEMP/imagenes/imagenes.tar.gz.age"
+            if [[ -s "$RUNNER_TEMP/registros_tiers.txt" ]]; then
+              age --encrypt -r "$LIGA_DESTINATARIO" -o "$RUNNER_TEMP/imagenes/registros_tiers.txt.age" \
+                "$RUNNER_TEMP/registros_tiers.txt"
+            fi
+          else
+            docker save "${imagenes[@]}" | gzip -1 >"$RUNNER_TEMP/imagenes/imagenes.tar.gz"
+          fi
+          ls -lh "$RUNNER_TEMP/imagenes"
+          echo "digest=$(docker image inspect -f '{{.Id}}' torneo-bot-base:local)" >>"$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: liga-imagenes
+          path: ${{ runner.temp }}/imagenes/
+          retention-days: 3
+          compression-level: 0
+
+  jugar:
+    needs: [preparar, imagenes]
+    if: github.repository == 'raya-lucaria/ia_o26_torneo_adversarial' && github.ref == 'refs/heads/main'
+    runs-on: ${{ vars.MAQUINA_LIGA || 'ubuntu-latest' }}
+    timeout-minutes: 360
+    environment: ${{ inputs.modo == 'oficial' && 'liga-oficial-jugar' || 'liga-ensayo' }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        shard: ${{ fromJSON(needs.preparar.outputs.shards) }}
+    env:
+      SHARD: ${{ matrix.shard }}
+      TOTAL: ${{ inputs.shards }}
+      TORNEO_IMAGEN_DIGEST: ${{ needs.imagenes.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Instalar age
+        if: inputs.modo == 'oficial'
+        run: command -v age >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq age; }
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: liga-preparado
+          path: ${{ runner.temp }}/descargas
+
+      - name: Restaurar participantes y semilla
+        env:
+          LIGA_LLAVE: ${{ secrets.LIGA_LLAVE }}
+        run: .github/scripts/liga_restaurar.sh "$MODO" "$RUNNER_TEMP/descargas"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: liga-imagenes
+          path: ${{ runner.temp }}/imagenes
+
+      - name: Cargar las imágenes de la liga
+        env:
+          LIGA_LLAVE: ${{ secrets.LIGA_LLAVE }}
+        run: |
+          if [[ "$MODO" == oficial ]]; then
+            llave="$(mktemp)"
+            trap 'rm -f "$llave"' EXIT
+            printf '%s\n' "$LIGA_LLAVE" >"$llave"
+            age --decrypt -i "$llave" "$RUNNER_TEMP/imagenes/imagenes.tar.gz.age" | gunzip | docker load
+            rm -f "$llave"
+          else
+            gunzip -c "$RUNNER_TEMP/imagenes/imagenes.tar.gz" | docker load
+          fi
+          rm -rf "$RUNNER_TEMP/imagenes"
+          actual="$(docker image inspect -f '{{.Id}}' torneo-bot-base:local)"
+          if [[ "$actual" != "$TORNEO_IMAGEN_DIGEST" ]]; then
+            echo "::error::La imagen de bots no es la construida para esta liga ($actual)."
+            exit 1
+          fi
+
+      - name: Preparar Docker y la caché de numba
+        run: ./torneo calentar
+
+      - name: Jugar shard ${{ matrix.shard }}/${{ inputs.shards }}
+        env:
+          VERBOSE: ${{ inputs.verbose }}
+        run: |
+          # Nada de lo que se imprima aquí se interpreta como comando de Actions.
+          token="$(python3 -c 'import secrets; print(secrets.token_hex(16))')"
+          echo "::stop-commands::$token"
+          set +e
+          ./torneo liga --oficial --shard "$SHARD/$TOTAL" --estado "$ESTADO" --juegos-dados "$JUEGOS"
+          rc=$?
+          if [[ "$VERBOSE" == true ]]; then
+            find "$ESTADO" -maxdepth 2 -type f | sort
+            cat "$ESTADO"/incidentes/*.json 2>/dev/null
+          fi
+          echo "::$token::"
+          exit "$rc"
+
+      - name: Empaquetar el shard
+        run: |
+          mkdir -p "$RUNNER_TEMP/shard"
+          tar -czf "$RUNNER_TEMP/shard/shard.tar.gz" -C "$(dirname "$ESTADO")" "$(basename "$ESTADO")"
+          if [[ "$MODO" == oficial ]]; then
+            # Solo el destinatario público (del paso de restaurar); aquí no hay llave.
+            age --encrypt -r "$LIGA_DESTINATARIO" -o "$RUNNER_TEMP/shard/shard.tar.gz.age" \
+              "$RUNNER_TEMP/shard/shard.tar.gz"
+            rm -f "$RUNNER_TEMP/shard/shard.tar.gz"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: liga-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/shard/
+          retention-days: 30
+
+  publicar:
+    needs: [imagenes, jugar]
+    if: github.repository == 'raya-lucaria/ia_o26_torneo_adversarial' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: ${{ inputs.modo == 'oficial' && 'liga-oficial-jugar' || 'liga-ensayo' }}
+    permissions:
+      contents: write
+    env:
+      RAMA: ${{ inputs.modo == 'oficial' && 'oficial' || 'ensayo' }}
+      TORNEO_IMAGEN_DIGEST: ${{ needs.imagenes.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias (numpy, scipy, numba, age)
+        run: |
+          python -m pip install --quiet -r sistema/requirements.txt -c sistema/constraints.txt
+          command -v age >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq age; }
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: liga-preparado
+          path: ${{ runner.temp }}/descargas
+
+      - name: Restaurar participantes y semilla
+        env:
+          LIGA_LLAVE: ${{ secrets.LIGA_LLAVE }}
+        run: .github/scripts/liga_restaurar.sh "$MODO" "$RUNNER_TEMP/descargas"
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: liga-shard-*
+          path: ${{ runner.temp }}/shards
+
+      - name: Juntar los shards
+        env:
+          LIGA_LLAVE: ${{ secrets.LIGA_LLAVE }}
+        run: |
+          mkdir -p "$(dirname "$ESTADO")"
+          llave="$(mktemp)"
+          trap 'rm -f "$llave"' EXIT
+          printf '%s\n' "${LIGA_LLAVE:-}" >"$llave"
+          # Todos los shards traen el MISMO estado_liga.json (liga completa) y cada uno su
+          # estados_shard/<i>_de_<n>.json: si dos estados globales difieren, son de otra liga.
+          n=0
+          global="$RUNNER_TEMP/estado_liga.json"
+          for archivo in "$RUNNER_TEMP"/shards/*/shard.tar.gz*; do
+            if [[ "$archivo" == *.age ]]; then
+              age --decrypt -i "$llave" "$archivo" | tar -xz -C "$(dirname "$ESTADO")"
+            else
+              tar -xzf "$archivo" -C "$(dirname "$ESTADO")"
+            fi
+            if [[ -f "$ESTADO/estado_liga.json" ]]; then
+              if [[ -f "$global" ]] && ! cmp -s "$global" "$ESTADO/estado_liga.json"; then
+                echo "::error::$(basename "$(dirname "$archivo")") es de otra liga (estado_liga.json distinto)."
+                exit 1
+              fi
+              cp "$ESTADO/estado_liga.json" "$global"
+            fi
+            n=$((n + 1))
+          done
+          rm -f "$llave"
+          echo "Shards juntados: $n"
+
+      - name: Llave desechable para el ensayo
+        if: inputs.modo == 'mini'
+        run: |
+          # El ensayo no tiene alumnos: si aún no está la llave del profesor, se usa una
+          # desechable (solo en este runner) para que el flujo sea el mismo.
+          if [[ ! -f sistema/llave_profesor.age.pub ]]; then
+            age-keygen -o "$RUNNER_TEMP/desechable.txt" 2>/dev/null
+            age-keygen -y "$RUNNER_TEMP/desechable.txt" >sistema/llave_profesor.age.pub
+          fi
+
+      - name: Tabla, calificaciones y sitio
+        env:
+          ACEPTAR: ${{ inputs.aceptar_incidentes }}
+        run: |
+          extra=()
+          [[ "$ACEPTAR" == true ]] && extra+=(--aceptar-incidentes)
+          TORNEO_PYTHON="$(command -v python)" ./torneo liga --oficial --publicar --sin-docker \
+            --estado "$ESTADO" --juegos-dados "$JUEGOS" "${extra[@]}"
+          cat "$ESTADO/resumen.md" >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Commit a la rama ${{ env.RAMA }}
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          # El token solo existe en este paso (solo comandos git, nada de código de bots).
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="http.https://github.com/.extraheader"
+          GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"
+          export GIT_CONFIG_VALUE_0
+          publico="$RUNNER_TEMP/publico"
+          mkdir -p "$publico"
+          for f in tabla.csv calificaciones.csv.age resumen.md incidentes.md manifest.json sitio; do
+            [[ -e "$ESTADO/$f" ]] && cp -a "$ESTADO/$f" "$publico/"
+          done
+          touch "$publico/.nojekyll"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          destino="$RUNNER_TEMP/rama"
+          if git ls-remote --exit-code --heads origin "$RAMA" >/dev/null; then
+            git fetch --quiet --depth 1 origin "$RAMA"
+            git worktree add --quiet "$destino" FETCH_HEAD
+            git -C "$destino" checkout --quiet -B "$RAMA"
+          else
+            git worktree add --quiet --detach "$destino"
+            git -C "$destino" checkout --quiet --orphan "$RAMA"
+          fi
+          git -C "$destino" rm -rfq --ignore-unmatch .
+          cp -a "$publico"/. "$destino"/
+          git -C "$destino" add -A
+          if git -C "$destino" diff --cached --quiet; then
+            echo "Sin cambios en la rama $RAMA."
+            exit 0
+          fi
+          git -C "$destino" commit --quiet -m "Liga $MODO $(date -u +%Y-%m-%dT%H:%MZ) (run $GITHUB_RUN_ID)"
+          git -C "$destino" push --quiet origin "HEAD:refs/heads/$RAMA"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: liga-${{ inputs.modo }}-resultados
+          path: |
+            ${{ env.ESTADO }}/tabla.csv
+            ${{ env.ESTADO }}/calificaciones.csv.age
+            ${{ env.ESTADO }}/resumen.md
+            ${{ env.ESTADO }}/incidentes.md
+            ${{ env.ESTADO }}/manifest.json
+            ${{ env.ESTADO }}/sitio/
+          retention-days: 90
+
+  pages:
+    # Pages publica un solo sitio: la rama «oficial» en la raíz y «ensayo» en /ensayo/.
+    needs: [publicar]
+    if: github.repository == 'raya-lucaria/ia_o26_torneo_adversarial' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.desplegar.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Armar el sitio
+        run: |
+          sitio="$RUNNER_TEMP/sitio"
+          mkdir -p "$sitio"
+          for rama in oficial ensayo; do
+            git fetch --quiet --depth 1 origin "$rama" 2>/dev/null || continue
+            destino="$sitio"
+            [[ "$rama" == ensayo ]] && destino="$sitio/ensayo"
+            tmp="$RUNNER_TEMP/rama-$rama"
+            mkdir -p "$tmp" "$destino"
+            if git archive FETCH_HEAD sitio | tar -x -C "$tmp"; then
+              cp -a "$tmp/sitio/." "$destino/"
+            else
+              echo "::warning::La rama $rama no tiene sitio/."
+            fi
+          done
+          touch "$sitio/.nojekyll"
+          [[ -f "$sitio/index.html" ]] || cat >"$sitio/index.html" <<'HTML'
+          <!doctype html><meta charset="utf-8"><title>Torneo</title>
+          <p>La liga oficial aún no se publica. <a href="ensayo/">Ver el ensayo</a>.</p>
+          HTML
+          find "$sitio" -maxdepth 2 | sort | head -50
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ runner.temp }}/sitio
+      - id: desplegar
+        uses: actions/deploy-pages@v4

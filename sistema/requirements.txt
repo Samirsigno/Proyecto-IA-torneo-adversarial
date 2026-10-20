@@ -1,0 +1,8 @@
+# Dependencias de la imagen base (versiones exactas).
+# numpy/scipy/numba/llvmlite deben coincidir con constraints.txt.
+numpy==2.4.6
+scipy==1.18.1
+numba==0.67.0
+llvmlite==0.49.0
+# Cliente Docker para el CLI (lanza los contenedores de los bots).
+docker==7.2.0

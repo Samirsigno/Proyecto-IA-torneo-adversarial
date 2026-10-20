@@ -1,0 +1,4 @@
+# Herramientas de desarrollo (no van en la imagen).
+pytest==9.1.1
+pyyaml==6.0.3
+ruff==0.17.1
