@@ -12,8 +12,8 @@ class TestAbstraccionEstado:
     
     def test_limite_memoria_100mb(self):
         """Valida que el espacio de estados comprimido no rompa las reglas del torneo."""
-        # Máximos teóricos: avance aliado=8, avance rival=8, material=36 (offset de -18 a 18), soporte=3
-        max_idx = estado_a_indice(8, 8, 36, 3)
+        # Máximos teóricos: avance aliado=8, avance rival=8, material=36 (offset de -18 a 18), soporte=2
+        max_idx = estado_a_indice(8, 8, 36, 2)
         
         # Si usamos float32, cada índice ocupa 4 bytes
         bytes_totales = max_idx * 4
@@ -25,12 +25,12 @@ class TestAbstraccionEstado:
     def test_biyectividad_indice_sin_colisiones(self):
         """Valida que cada tupla posible genere un índice 1D estrictamente único."""
         indices_vistos = set()
-        total_estados_esperados = 9 * 9 * 37 * 4
+        total_estados_esperados = 9 * 9 * 37 * 3
         
         for avance_aliado in range(9):
             for avance_rival in range(9):
                 for material in range(37):
-                    for soporte in range(4):
+                    for soporte in range(3):
                         idx = estado_a_indice(avance_aliado, avance_rival, material, soporte)
                         assert idx not in indices_vistos, f"COLISIÓN: El índice {idx} ya fue generado por otra tupla."
                         indices_vistos.add(idx)
@@ -68,6 +68,6 @@ class TestJerarquiaRecompensas:
         Esto significa delta_puntos = +1 y delta_material = -1.
         El neto debe ser fuertemente positivo.
         """
-        # +300 por punto, -15 por material perdido
+        # +300 por punto
         recompensa_neta = calcular_recompensa(delta_puntos=1, delta_material=-1, delta_bloqueos=0)
-        assert recompensa_neta == 285, f"Cálculo de deltas erróneo. Esperado 285, obtenido {recompensa_neta}"
+        assert recompensa_neta == 300, f"Cálculo de deltas erróneo. Esperado 300, obtenido {recompensa_neta}"

@@ -32,31 +32,46 @@ Dado el límite de 1 núcleo y 30 segundos por partida en el torneo[cite: 1], re
 El código en `herramientas/` no se ejecuta en la liga[cite: 1], dándonos libertad para precomputar datos explotando múltiples núcleos.
 * **Lenguaje:** Python puro.
 * **Restricción de Hardware:** Máximo ~8 GB de RAM disponibles y 12 hilos lógicos. 
-* **Paralelismo y Memoria:** Está estrictamente prohibido usar `multiprocessing` estándar para clonar la tabla de valores, ya que causará un Out Of Memory (OOM). Se utilizará `multiprocessing.shared_memory` o arreglos de `multiprocessing.Array` para crear un buffer a nivel de bytes (memoria compartida) donde todos los procesos (workers) actualicen la función de valor simultáneamente.
+* **Paralelismo y Memoria:** Está estrictamente prohibido usar `multiprocessing` estándar para clonar la tabla de valores, ya que causará un Out Of Memory (OOM). Se utilizará un arreglo 1D en `multiprocessing.shared_memory` creando un buffer a nivel de bytes donde todos los procesos (workers) actualicen la función de valor simultáneamente.
 * **Optimización:** Las rutinas críticas del Proceso de Decisión de Markov (MDP) y cálculos estocásticos deben estar vectorizadas con arreglos de NumPy y aceleradas usando compilación Just-In-Time con `numba`[cite: 1].
-* **Salida:** La tabla convergida del Asynchronous Value Iteration se exportará a un archivo binario optimizado (`.pkl` o `.npy`) menor a 100 MB dentro de la carpeta `data/`[cite: 1].
+* **Salida:** La tabla convergida del Asynchronous Value Iteration se exportará a un archivo binario optimizado (`.pkl` o `.npy`) que pesará ~1.4 MB, cumpliendo holgadamente el límite de 100 MB en `data/`[cite: 1].
 
 ### Fase Online (Inferencia en `strategy.py`)
 Solo `strategy.py` se ejecuta en la liga bajo estrictos límites[cite: 1].
-* **`preparar(config)`:** Carga el archivo binario desde la carpeta de datos precomputados a un diccionario nativo de Python o un arreglo de NumPy en $O(1)$ dentro del límite de 10 segundos[cite: 1].
+* **`preparar(config)`:** Carga el archivo binario desde la carpeta de datos a un arreglo nativo de NumPy en memoria en tiempo $O(1)$ dentro de los 10 segundos de preparación[cite: 1].
 * **`jugar(estado, tiempo_restante)`:** Implementa un **Monte Carlo Tree Search (MCTS)**. 
-* **Poda y Evaluación:** En la fase de simulación (rollout) del MCTS, truncaremos la búsqueda utilizando los valores precomputados (Value Iteration) para evaluar las hojas de forma instantánea y retropropagar la recompensa, optimizando el reloj de 30 segundos[cite: 1].
+* **Poda y Evaluación:** En la fase de simulación (rollout) del MCTS, truncaremos la búsqueda mapeando el tablero a su índice abstracto y consultando la memoria precomputada para evaluar las hojas de forma instantánea y retropropagar la recompensa, garantizando no agotar el reloj de 30 segundos[cite: 1].
 
-## 5. Abstracción del Estado (Reducción de Dimensionalidad)
-El espacio de estados $3^{81}$ no cabe en 100 MB[cite: 1]. El simulador en Python mapeará el tablero exacto a la siguiente tupla comprimida $S'$ para el Value Iteration:
-1.  **Avance máximo aliado:** Distancia (0-8) a la meta.
-2.  **Avance máximo rival:** Distancia (0-8) a nuestra meta.
-3.  **Diferencial de material:** (Peones aliados - Peones rivales), rango de -18 a 18[cite: 1].
-4.  **Índice de soporte local:** Promedio redondeado (0-3) del apoyo de las 3 piezas más adelantadas.
+## 5. Abstracción del Estado y Manejo de Memoria Plana
+El espacio de estados original ($3^{81}$) es intratable. Para que la memoria compartida converja, mapearemos el tablero exacto a una tupla abstracta $\hat{s} = (x_1, x_2, x_3, x_4)$ utilizando reducción de dimensionalidad:
+1.  **$x_1$ (Avance máximo aliado):** Distancia a la meta (0 a 8).
+2.  **$x_2$ (Avance máximo rival):** Distancia a nuestra meta (0 a 8)
+3.  **$x_3$ (Diferencial de material):** (Peones aliados - Peones rivales), rango de -18 a 18[cite: 1].
+4.  **$x_4$ (Índice de soporte local):** Promedio redondeado del apoyo de las 3 piezas de vanguardia (0 a 2).
 
-## 6. Modelo Matemático (Ecuación de Bellman)
-Para calcular el valor en Python, usaremos el Proceso de Decisión de Markov:
-$$V(s) = \max_a \sum_{s'} P(s'|s,a) \left[ R(s,a,s') + \gamma V(s') \right]$$
-*   $P(s'|s,a)$ está dictado estocásticamente por la fórmula de probabilidad de combate[cite: 1].
-*   $R(s,a,s')$ recompensará la ganancia de puntos, la supervivencia y penalizará la pérdida de material.
+**Biyectividad a Índice 1D:**
+Para leer/escribir en el bloque de memoria compartida en tiempo $O(1)$, la tupla se codificará en un índice lineal único $i$ usando una suma polinomial de base mixta:
+$$i = x_1 \cdot (9 \cdot 37 \cdot 3) + x_2 \cdot (37 \cdot 3) + (x_3 + 18) \cdot 3 + x_4$$
+Esto genera un espacio acotado de $8,991$ estados, previniendo colisiones lógicas y asegurando que la huella de memoria sea minúscula.
+
+## 6. Modelo Matemático y State Aggregation
+Entrenaremos utilizando **State Aggregation**. El entrenamiento fluirá en una "realidad dual":
+1.  Las simulaciones usarán las coordenadas exactas de las 36 piezas para obtener las jugadas legales $a$ y calcular el combate estocástico exacto[cite: 1].
+2.  La Ecuación de Bellman extraerá el valor y actualizará el aprendizaje usando las tuplas abstractas $\hat{s}$ e índices 1D correspondientes a los tableros resultantes $s'$.
+
+$$V(\hat{s}) \leftarrow \max_{a \in A(s)} \sum_{s'} P(s'|s,a) \left[ R(s, s') + \gamma V(\hat{s}') \right]$$
+
+**Jerarquía Estricta de Recompensas $R(s, s')$ (Deltas):**
+Para evitar *Reward Hacking* (ej. farmear piezas sin avanzar) y mantener la estabilidad numérica, las recompensas base están escaladas sobre 1000:
+*   Victoria / Derrota absoluta: $+1000$ / $-1000$[cite: 1]
+*   Obtener / Recibir 1 punto: $+300$ / $-300$ (Anula la penalización de perder la pieza anotadora)[cite: 1]
+*   Comer / Ser comido: $+15$ / $-15$[cite: 1]
+*   Bloquear pieza rival (dejarla sin jugadas legales): $+5$ por pieza
+*   Apoyo de vanguardia (delta de incremento): $+3$[cite: 1]
+*   Avance máximo (delta hacia la fila final): $+2$
 
 ## 7. Flujo de Ejecución bajo Superpowers (SDD)
 Antes de generar código, el Agente DEBE:
 1.  **Analizar las Especificaciones:** Validar matemáticamente si la tarea asignada viola la memoria, el límite de 100 MB en disco[cite: 1], o la probabilidad de combate[cite: 1].
-2.  **Escribir Tests (TDD):** Redactar aserciones lógicas (por ejemplo, asegurar que la probabilidad nunca sea $< 0$ ni $> 1$).
-3.  **Generar Código:** Limpio, modular, y documentado, respetando la separación entre la fase offline y la fase online (Python).
+2.  **Escribir Tests (TDD):** Redactar aserciones lógicas (por ejemplo, asegurar que la biyectividad nunca genere colisiones y que $p \in [0.2, 0.8]$).
+3.  **Generar Código:** Limpio, modular, documentado en Python puro, y optimizado matemáticamente desde primeros principios.
