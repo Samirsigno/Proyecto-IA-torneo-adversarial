@@ -1,6 +1,10 @@
 # Contexto Maestro y Arquitectura: Bot para Breakthrough de Combate
 **Metodología:** Specification-Driven Development (SDD) vía Superpowers.
+
 **Restricción Crítica:** CERO REDES NEURONALES[cite: 1].
+## ESTADO ACTUAL DEL PROYECTO
+* **Fases 1 y 2 (Completadas):** Las abstracciones matemáticas ya están implementadas y validadas.
+* **Archivos Protegidos:** `herramientas/test_specs.py` y `herramientas/specs.py` son ahora de **SOLO LECTURA**. Tienes estrictamente prohibido modificarlos bajo ninguna circunstancia. Tu trabajo debe acoplarse a las funciones ya exportadas por estos módulos.
 
 ## 1. Perfil de Dominio Técnico
 Superpowers gestionará tu flujo de trabajo metodológico. Tu conocimiento técnico y mentalidad para ejecutar dicho flujo deben regirse por los siguientes principios:
@@ -31,10 +35,12 @@ Dado el límite de 1 núcleo y 30 segundos por partida en el torneo[cite: 1], re
 ### Fase Offline (Entrenamiento en `herramientas/`)
 El código en `herramientas/` no se ejecuta en la liga[cite: 1], dándonos libertad para precomputar datos explotando múltiples núcleos.
 * **Lenguaje:** Python puro.
-* **Restricción de Hardware:** Máximo ~8 GB de RAM disponibles y 12 hilos lógicos. 
+* **Restricción de Hardware:** Máximo ~8 GB de RAM disponibles y 12 hilos lógicos.
 * **Paralelismo y Memoria:** Está estrictamente prohibido usar `multiprocessing` estándar para clonar la tabla de valores, ya que causará un Out Of Memory (OOM). Se utilizará un arreglo 1D en `multiprocessing.shared_memory` creando un buffer a nivel de bytes donde todos los procesos (workers) actualicen la función de valor simultáneamente.
 * **Optimización:** Las rutinas críticas del Proceso de Decisión de Markov (MDP) y cálculos estocásticos deben estar vectorizadas con arreglos de NumPy y aceleradas usando compilación Just-In-Time con `numba`[cite: 1].
-* **Salida:** La tabla convergida del Asynchronous Value Iteration se exportará a un archivo binario optimizado (`.pkl` o `.npy`) que pesará ~1.4 MB, cumpliendo holgadamente el límite de 100 MB en `data/`[cite: 1].
+* **Motor de Transiciones:** Las simulaciones *offline* usarán directamente la API del motor oficial (`estado.siguiente(j)`)[cite: 1] para obtener las jugadas legales, los tableros físicos resultantes y sus probabilidades exactas.
+* **Memoria:** Se utilizará un arreglo 1D plano en `multiprocessing.shared_memory` de tipo `float32`.
+* **Salida:** Al no usar una Q-Table, la tabla de valor ($V$) resultante pesará apenas **~35 KB**, cumpliendo holgadamente el límite de 100 MB en `data/`[cite: 1].
 
 ### Fase Online (Inferencia en `strategy.py`)
 Solo `strategy.py` se ejecuta en la liga bajo estrictos límites[cite: 1].
@@ -44,8 +50,8 @@ Solo `strategy.py` se ejecuta en la liga bajo estrictos límites[cite: 1].
 
 ## 5. Abstracción del Estado y Manejo de Memoria Plana
 El espacio de estados original ($3^{81}$) es intratable. Para que la memoria compartida converja, mapearemos el tablero exacto a una tupla abstracta $\hat{s} = (x_1, x_2, x_3, x_4)$ utilizando reducción de dimensionalidad:
-1.  **$x_1$ (Avance máximo aliado):** Distancia a la meta (0 a 8).
-2.  **$x_2$ (Avance máximo rival):** Distancia a nuestra meta (0 a 8)
+1.  **$x_1$ (Avance máximo aliado):** Máximo avance aliado(0 a 8).
+2.  **$x_2$ (Avance máximo rival):** Máximo avance rival (0 a 8).
 3.  **$x_3$ (Diferencial de material):** (Peones aliados - Peones rivales), rango de -18 a 18[cite: 1].
 4.  **$x_4$ (Índice de soporte local):** Promedio redondeado del apoyo de las 3 piezas de vanguardia (0 a 2).
 
@@ -54,12 +60,12 @@ Para leer/escribir en el bloque de memoria compartida en tiempo $O(1)$, la tupla
 $$i = x_1 \cdot (9 \cdot 37 \cdot 3) + x_2 \cdot (37 \cdot 3) + (x_3 + 18) \cdot 3 + x_4$$
 Esto genera un espacio acotado de $8,991$ estados, previniendo colisiones lógicas y asegurando que la huella de memoria sea minúscula.
 
-## 6. Modelo Matemático y State Aggregation
-Entrenaremos utilizando **State Aggregation**. El entrenamiento fluirá en una "realidad dual":
-1.  Las simulaciones usarán las coordenadas exactas de las 36 piezas para obtener las jugadas legales $a$ y calcular el combate estocástico exacto[cite: 1].
-2.  La Ecuación de Bellman extraerá el valor y actualizará el aprendizaje usando las tuplas abstractas $\hat{s}$ e índices 1D correspondientes a los tableros resultantes $s'$.
+## 6. Modelo Matemático (Perspectiva Relativa / Negamax)
+Entrenaremos una Tabla de Valor pura $V(\hat{s})$, sin abstraer acciones, que evaluará la estructura del tablero **siempre desde la perspectiva del jugador en turno**. 
 
-$$V(\hat{s}) \leftarrow \max_{a \in A(s)} \sum_{s'} P(s'|s,a) \left[ R(s, s') + \gamma V(\hat{s}') \right]$$
+El entrenamiento fluirá extrayendo los tableros resultantes y sus probabilidades físicas $P(s'|s,a)$ directamente del motor oficial (`estado.siguiente(j)`)[cite: 1], mapeando los destinos a sus índices abstractos, e invirtiendo la perspectiva para evaluar el estado futuro del rival:
+
+$$V(\hat{s}) \leftarrow \max_a \sum_{s'} P(s'|s,a) \left[ R(s, s') - \gamma V(\hat{s}'_{rival}) \right]$$
 
 **Jerarquía Estricta de Recompensas $R(s, s')$ (Deltas):**
 Para evitar *Reward Hacking* (ej. farmear piezas sin avanzar) y mantener la estabilidad numérica, las recompensas base están escaladas sobre 1000:

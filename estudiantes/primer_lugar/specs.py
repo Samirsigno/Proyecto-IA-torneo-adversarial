@@ -7,7 +7,7 @@ Ver CONTEXTO.MD, secciones 5 y 6.
 
 # --- Abstracción del estado -----------------------------------------------------------
 # Tupla abstracta ŝ = (x1, x2, x3, x4):
-#   x1, x2: avance máximo aliado y rival, distancia a la meta (0 a 8)
+#   x1, x2: avance máximo aliado y rival, avance máximo en casillas [0,8]
 #   x3:     diferencial de material (−18 a 18); llega desplazado a x3 + 18 (0 a 36)
 #   x4:     soporte de la vanguardia (0 a 2)
 NIVELES_AVANCE = 9
