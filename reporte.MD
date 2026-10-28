@@ -292,6 +292,26 @@ estudiantes/primer_lugar/herramientas/entrenar.sh --horas 8
 - Al terminar, sube la tabla para fusionarla con las de las demás máquinas:
   `git add estudiantes/primer_lugar/herramientas/tablas/ && git commit -m "Tabla V de <nombre>" && git push`.
 
+### 17. ¿Más RAM o más workers aceleran el entrenamiento? (pregunta del usuario)
+
+- **Máquina:** Ryzen 5 7535HS (6 núcleos físicos, 12 hilos) con 15.3 GB de RAM. WSL2 recibe la
+  mitad de la RAM (7.4 GB, porque no hay `.wslconfig`) y los 12 hilos.
+- **Benchmark** (Docker, 72 s por corrida, `--desde-cero`, archivos borrados al terminar):
+
+  | Workers | Respaldos/s | Partidas | Memoria | CPU |
+  |---|---|---|---|---|
+  | 6 | 3 831 | 19 | 494 MiB | 605 % |
+  | 12 | 5 289 | 18 | 922 MiB | 1 268 % |
+  | 24 | 5 064 | 9 | 1.7 GiB | 1 281 % |
+
+- **Conclusión:** el límite es la CPU, no la RAM. Con 12 workers, uno por hilo, se obtiene el
+  máximo; los hilos «extra» del hyperthreading dan un 38 % más que 6. Con 24, la memoria se
+  duplica y el ritmo baja un 4 %. Más RAM para WSL no acelera el entrenamiento.
+- **Lo que sí aumenta el trabajo en paralelo:** más máquinas corriendo `entrenar.sh`, cada una
+  con su etiqueta, y fusionar sus tablas con `fusionar_arreglos`. Otra vía sería expandir los
+  nodos en numba sobre el arreglo del tablero en lugar de con objetos `Estado`, pero CONTEXTO §4
+  pide usar `estado.siguiente(j)`: es decisión del usuario.
+
 ### Pendiente
 
 - Comando para fusionar las tablas de las dos máquinas (`fusionar_arreglos` ya existe) y dejar

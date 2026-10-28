@@ -4,7 +4,7 @@
 **Restricción Crítica:** CERO REDES NEURONALES[cite: 1].
 ## ESTADO ACTUAL DEL PROYECTO
 * **Fases 1 y 2 (Completadas):** Las abstracciones matemáticas ya están implementadas y validadas.
-* **Archivos Protegidos:** `herramientas/test_specs.py` y `herramientas/specs.py` son ahora de **SOLO LECTURA**. Tienes estrictamente prohibido modificarlos bajo ninguna circunstancia. Tu trabajo debe acoplarse a las funciones ya exportadas por estos módulos.
+* **Archivos Protegidos:** `herramientas/test_specs.py` y `specs.py` son ahora de **SOLO LECTURA**. Tienes estrictamente prohibido modificarlos bajo ninguna circunstancia. Tu trabajo debe acoplarse a las funciones ya exportadas por estos módulos.
 
 ## 1. Perfil de Dominio Técnico
 Superpowers gestionará tu flujo de trabajo metodológico. Tu conocimiento técnico y mentalidad para ejecutar dicho flujo deben regirse por los siguientes principios:
