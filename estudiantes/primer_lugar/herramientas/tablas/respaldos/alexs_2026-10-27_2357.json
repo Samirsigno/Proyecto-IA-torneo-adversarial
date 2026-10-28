@@ -1,0 +1,9 @@
+{
+  "partidas": 185,
+  "respaldos": 12251498,
+  "segundos": 1958.7,
+  "gamma": 0.95,
+  "iteraciones": 800,
+  "trabajadores": 12,
+  "actualizado": "2026-10-28T05:35:00+00:00"
+}

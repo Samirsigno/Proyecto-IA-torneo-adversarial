@@ -6,6 +6,12 @@ respaldo de Bellman negamax, asignado directo en la tabla (CONTEXTO.MD §6):
 
     V(ŝ) ← max_a Σ P(s'|s,a) · [ R(s, s') − γ · V(ŝ'_rival) ]
 
+La jugada que se ejecuta sigue otra política (off-policy, como en Q-learning): con probabilidad
+EPSILON una jugada legal al azar y si no la de mayor Q. Esa elección solo decide a qué tablero
+se avanza; lo que se escribe en la tabla es siempre el max_a de la expansión. Además, PROB_CAOS
+de las partidas empiezan en un tablero aleatorio en vez de la posición inicial, para llegar a
+celdas que el juego normal casi no visita.
+
 La tabla vive en `multiprocessing.shared_memory` (float32, NUM_ESTADOS celdas; CONTEXTO.MD §4):
 todos los workers leen y escriben el mismo buffer, sin copias ni candados, así que cada uno usa
 al instante lo que escriben los demás. Escribir un float32 alineado es atómico: si dos workers
@@ -48,6 +54,8 @@ from motor import Estado  # noqa: E402
 
 GAMMA = 0.95
 ITERACIONES = 200  # iteraciones del MCTS por jugada
+EPSILON = 0.1  # probabilidad de ejecutar una jugada legal al azar (exploración)
+PROB_CAOS = 0.05  # probabilidad de empezar una partida en un tablero aleatorio
 TIPO_VALOR = np.float32
 
 # Una celda visitada nunca guarda 0.0: `fusionar_arreglos` lo leería como «no explorada».
@@ -105,6 +113,41 @@ def celdas_exploradas(tabla: np.ndarray) -> int:
     return int(np.count_nonzero(tabla != inicializar_tabla()))
 
 
+def generar_tablero_aleatorio(dado=random) -> Estado:
+    """Tablero válido pero caótico: de 2 a 18 peones por bando en casillas al azar.
+
+    Ningún peón en la fila donde anotaría (Blancas fuera de la 9, Negras fuera de la 1), turno
+    al azar y 0 a 0 en puntos. Nunca es terminal: un bando con algún peón siempre tiene jugada.
+    """
+    casillas = [col + fila for fila in "123456789" for col in "abcdefghi"]
+    blancas = dado.sample([c for c in casillas if c[1] != "9"], dado.randint(2, 18))
+    ocupadas = set(blancas)
+    libres = [c for c in casillas if c[1] != "1" and c not in ocupadas]
+    negras = dado.sample(libres, dado.randint(2, 18))
+    turno = dado.choice(("blancas", "negras"))
+    return Estado.desde_dict({"blancas": blancas, "negras": negras, "turno": turno})
+
+
+def tablero_de_inicio(dado, prob_caos: float) -> Estado:
+    """Posición con la que empieza una partida: aleatoria con probabilidad `prob_caos`."""
+    return generar_tablero_aleatorio(dado) if dado.random() < prob_caos else Estado.inicial()
+
+
+def elegir_rama(raiz, mejor, dado, epsilon: float):
+    """Jugada que se ejecuta (ε-greedy): una legal al azar con probabilidad `epsilon`, si no
+    `mejor`. No escribe nada: la tabla ya se actualizó con max_a al expandir `raiz`."""
+    return dado.choice(raiz.jugadas) if dado.random() < epsilon else mejor
+
+
+def jugar_turno(busqueda, raiz, dado, iteraciones: int, epsilon: float):
+    """Un turno del worker: búsqueda (que escribe V con max_a), jugada ε-greedy y dado.
+
+    Regresa el tablero siguiente, con su subárbol para reusarlo.
+    """
+    mejor = busqueda.buscar(raiz, iteraciones)
+    return _tirar_dado(elegir_rama(raiz, mejor, dado, epsilon), dado)
+
+
 # --- Memoria compartida ------------------------------------------------------------------
 
 
@@ -151,15 +194,18 @@ class Memoria:
 # --- Workers -----------------------------------------------------------------------------
 
 
-def _trabajar(numero, nombres, trabajadores, semilla, iteraciones, partidas, parar) -> None:
-    """Proceso worker: conecta la memoria compartida y juega hasta que se lo pidan."""
+def _trabajar(numero, nombres, trabajadores, semilla, juego, partidas, parar) -> None:
+    """Proceso worker: conecta la memoria compartida y juega hasta que se lo pidan.
+
+    `juego`: (iteraciones, epsilon, prob_caos).
+    """
     signal.signal(signal.SIGINT, signal.SIG_IGN)  # Ctrl+C lo atiende el proceso principal
     memoria = Memoria.abrir(nombres, trabajadores)
-    _jugar(memoria, numero, random.Random(semilla), iteraciones, partidas, parar)
+    _jugar(memoria, numero, random.Random(semilla), *juego, partidas, parar)
     memoria.cerrar()
 
 
-def _jugar(memoria, numero, dado, iteraciones, partidas, parar) -> None:
+def _jugar(memoria, numero, dado, iteraciones, epsilon, prob_caos, partidas, parar) -> None:
     """Partidas contra sí mismo hasta que `parar` se active o se cumplan `partidas`."""
     contadores = memoria.contadores
 
@@ -170,9 +216,9 @@ def _jugar(memoria, numero, dado, iteraciones, partidas, parar) -> None:
     busqueda = mcts.MCTS(memoria.tabla, GAMMA, al_expandir)
     contadores[numero, LISTO] = 1
     while not parar.is_set() and (partidas is None or contadores[numero, PARTIDAS] < partidas):
-        raiz = busqueda.nodo(Estado.inicial())
+        raiz = busqueda.nodo(tablero_de_inicio(dado, prob_caos))
         while not raiz.terminal and not parar.is_set():
-            raiz = _tirar_dado(busqueda.buscar(raiz, iteraciones), dado)  # el subárbol se reusa
+            raiz = jugar_turno(busqueda, raiz, dado, iteraciones, epsilon)
         if raiz.terminal:
             contadores[numero, PARTIDAS] += 1
 
@@ -218,6 +264,8 @@ def entrenar(
     trabajadores: int,
     iteraciones: int = ITERACIONES,
     *,
+    epsilon: float = EPSILON,
+    prob_caos: float = PROB_CAOS,
     horas: float | None = None,
     partidas_por_trabajador: int | None = None,
     guardar_cada_s: float = 300.0,
@@ -257,6 +305,8 @@ def entrenar(
             "segundos": round(previo.get("segundos", 0.0) + segundos, 1),
             "gamma": GAMMA,
             "iteraciones": iteraciones,
+            "epsilon": epsilon,
+            "prob_caos": prob_caos,
             "trabajadores": trabajadores,
             "actualizado": datetime.now().astimezone().isoformat(timespec="seconds"),
         }
@@ -265,7 +315,8 @@ def entrenar(
         memoria.tabla[:] = tabla_inicial
         for numero, hijo in enumerate(np.random.SeedSequence(semilla).spawn(trabajadores)):
             semilla_dado = int(hijo.generate_state(1, np.uint64)[0])
-            args = (numero, memoria.nombres, trabajadores, semilla_dado, iteraciones,
+            juego = (iteraciones, epsilon, prob_caos)
+            args = (numero, memoria.nombres, trabajadores, semilla_dado, juego,
                     partidas_por_trabajador, parar)  # fmt: skip
             procesos.append(contexto.Process(target=_trabajar, args=args, name=f"worker-{numero}"))
             procesos[-1].start()
@@ -279,7 +330,8 @@ def entrenar(
         fin = inicio + horas * 3600 if horas is not None else math.inf
         proximo_reporte, proximo_guardado = inicio + reportar_cada_s, inicio + guardar_cada_s
         anterior = memoria.tabla.copy()
-        respaldos_anteriores, momento_anterior = 0, inicio
+        # El ritmo se mide desde los respaldos ya hechos (los de corridas anteriores incluidos).
+        respaldos_anteriores, momento_anterior = previo.get("respaldos", 0), inicio
         avisados = set()
 
         while not detener and any(p.is_alive() for p in procesos):
@@ -347,16 +399,26 @@ def main(argv=None) -> None:
     parser.add_argument("--workers", type=int, default=os.cpu_count(), help="procesos (núcleos)")
     parser.add_argument("--horas", type=float, help="detenerse después de H horas (si no, Ctrl+C)")
     parser.add_argument("--iteraciones", type=int, default=ITERACIONES, help="del MCTS por jugada")
+    parser.add_argument(
+        "--epsilon", type=float, default=EPSILON, help="probabilidad de jugar una jugada al azar"
+    )
+    parser.add_argument(
+        "--caos", type=float, default=PROB_CAOS, help="fracción de partidas desde un tablero al azar"
+    )
     parser.add_argument("--guardar-cada", type=float, default=5.0, help="minutos entre guardados")
     parser.add_argument("--desde-cero", action="store_true", help="ignorar la tabla guardada")
     args = parser.parse_args(argv)
     if not re.fullmatch(r"[A-Za-z0-9_.-]+", args.etiqueta):
         parser.error(f"etiqueta inválida: {args.etiqueta!r} (letras, dígitos, _ . -)")
+    for nombre in ("epsilon", "caos"):
+        if not 0.0 <= getattr(args, nombre) <= 1.0:
+            parser.error(f"--{nombre} debe estar entre 0 y 1")
 
     salida = CARPETA_TABLAS / f"{args.etiqueta}.npy"
     print(
         f"Entrenando con {args.workers} workers · {args.iteraciones} iteraciones de MCTS por "
-        f"jugada · γ = {GAMMA}\nTabla: {salida} (se guarda cada {args.guardar_cada:g} min)\n"
+        f"jugada · γ = {GAMMA} · ε = {args.epsilon:g} · caos {args.caos:.0%}\n"
+        f"Tabla: {salida} (se guarda cada {args.guardar_cada:g} min)\n"
         "Ctrl+C para detener: guarda antes de salir.",
         flush=True,
     )
@@ -364,6 +426,8 @@ def main(argv=None) -> None:
         salida,
         args.workers,
         args.iteraciones,
+        epsilon=args.epsilon,
+        prob_caos=args.caos,
         horas=args.horas,
         guardar_cada_s=args.guardar_cada * 60,
         desde_cero=args.desde_cero,

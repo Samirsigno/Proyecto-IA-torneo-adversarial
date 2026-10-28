@@ -312,6 +312,74 @@ estudiantes/primer_lugar/herramientas/entrenar.sh --horas 8
   nodos en numba sobre el arreglo del tablero en lugar de con objetos `Estado`, pero CONTEXTO §4
   pide usar `estado.siguiente(j)`: es decisión del usuario.
 
+### 18. Exploración off-policy: ε-greedy y tableros caóticos (pedido del usuario)
+
+- **Motivo (dicho por el usuario):** la tabla se estancó en ~1 067 celdas exploradas; los
+  workers caen en óptimos locales. **Esto cambia la decisión de la sección 8, respuesta 4**
+  («no hay necesidad de ε-greedy»).
+- **Diseño aprobado** (cambio acotado; solo `herramientas/entrenamiento.py` y sus pruebas, sin
+  tocar `mcts.py`, `strategy.py` ni los archivos de specs). El usuario pidió ε = 0.3 y 20 % de
+  caos; al aprobar lo cambió a **ε = 0.1** y **5 % de caos / 95 % posición inicial**.
+  - **Turno del worker** (`jugar_turno`): (1) `buscar` del MCTS, que en cada expansión escribe
+    `V(ŝ) ← max_a Q` sobre todas las jugadas legales; (2) `elegir_rama`: con probabilidad ε
+    una jugada legal al azar y si no la de mayor Q; (3) el dado del ataque.
+  - **Por qué la jugada al azar no contamina el max_a:** el paso (2) llega cuando la tabla ya
+    está escrita, solo elige a qué tablero avanzar y no escribe nada. Los valores que el MCTS
+    recalcula al retropropagar se quedan en memoria del árbol: a la tabla solo se escribe al
+    expandir.
+  - **`generar_tablero_aleatorio`:** de 2 a 18 peones por bando en casillas al azar, sin
+    peones en la fila donde anotarían, turno 50/50 y 0 a 0 en puntos. Nunca es terminal.
+  - **`tablero_de_inicio`:** cada partida empieza en un tablero caótico con probabilidad 5 %.
+  - Los números aleatorios salen del generador con semilla de cada worker, no del módulo global
+    `random`.
+  - Opciones nuevas `--epsilon` y `--caos` (0 y 0 vuelven al comportamiento anterior). El `.json`
+    guarda `epsilon` y `prob_caos`.
+- **Pruebas (TDD), en `test_trabajadores.py`:**
+  - **Tablero aleatorio:** 500 muestras; rangos de 2 a 18 peones, filas permitidas, nunca
+    terminal, los dos turnos y todos los tamaños.
+  - **Inicio:** 4 000 sorteos al 5 %.
+  - **ε-greedy:** ε = 0 juega siempre la mejor; ε = 1 llega a todas las jugadas legales.
+  - **No contaminación:** con ε = 1, 30 semillas: la celda de la raíz vale exactamente el
+    max_a Q aunque se juegue otra jugada, y sí hubo jugadas no óptimas.
+  - **Integración:** workers reales con ε = 0.5 y 100 % de caos.
+  - **RED:** `ImportError: cannot import name 'elegir_rama'`. **GREEN:** carpeta completa
+    **45 passed**.
+  - **Mutación:** si `elegir_rama` ignora ε, fallan 2 tests. Se restauró el archivo (`cmp`).
+- **Advertencias dichas al usuario:** (a) con asignación directa, un tablero caótico que cae en
+  la misma celda que uno real sobrescribe su valor; (b) como el avance 8 nunca aparece en el
+  tablero, a lo más hay 8·8·37·3 = 7 104 celdas alcanzables, y muchas no ocurren en partidas
+  reales.
+
+### 19. Corrida de 7 horas (2026-10-27, 23:57)
+
+- **Respaldo previo** (copia idéntica, verificada con `cmp`):
+  `herramientas/tablas/respaldos/alexs_2026-10-27_2357.npy` y `.json`. Contenía 185 partidas y
+  12 251 498 respaldos, entrenados con 800 iteraciones.
+- **Comando** (desacoplado de la terminal con `setsid nohup`, así que sigue aunque se cierre VS
+  Code):
+  `entrenar.sh --horas 7 --epsilon 0.1 --caos 0.05 --iteraciones 800`. Continúa desde
+  `tablas/alexs.npy`. Se mantuvieron las 800 iteraciones de la corrida anterior del usuario.
+- **Log:** `resultados/entrenamiento_2026-10-27_2357.log`.
+- **Detenerla antes de tiempo** (guarda al salir):
+  `docker stop -t 60 $(docker ps -q --filter ancestor=torneo-base:local)`.
+- **Primeros reportes:** a los 1, 2 y 3 minutos, 1 197 → 1 200 → 1 200 celdas exploradas
+  (antes ~1 067). Ritmo de 4 500 a 4 800 respaldos/s. Memoria 1.2 GiB, CPU 1 323 %.
+- **Error encontrado y corregido:** al reanudar, el ritmo del primer reporte contaba los
+  respaldos de las corridas anteriores (salió 208 487/s; en realidad eran ~4 850/s). Solo afecta
+  esa línea del log, no al entrenamiento. Prueba nueva
+  `test_el_ritmo_no_cuenta_lo_de_corridas_anteriores`. **RED:** 22 702/s × 0.3 s > 5 043
+  respaldos hechos. **GREEN:** carpeta completa **46 passed**. La corrida en curso conserva el
+  código anterior (el error solo estaba en su primera línea).
+- **Cancelada a petición del usuario** a los 6 minutos, para correrla él en su terminal.
+  `docker stop -t 60` la detuvo limpia: guardó `alexs.npy` con 204 partidas, 13 940 444
+  respaldos y 0:38:42 de entrenamiento acumulado. No quedó ningún proceso vivo ni memoria
+  compartida en `/dev/shm`.
+- **Corrida del usuario en su terminal** (2026-10-28 00:09, mismos parámetros). A las 00:21 el
+  usuario creyó que se había detenido. Se revisó y **seguía corriendo**: contenedor activo
+  desde hacía 17 min, CPU 1 209 %, 1.2 GiB, y el último guardado a las 00:19 (247 partidas,
+  16.9 M respaldos). Solo se consultó, no se cambió nada.
+- Código de esta sección sin commit.
+
 ### Pendiente
 
 - Comando para fusionar las tablas de las dos máquinas (`fusionar_arreglos` ya existe) y dejar
