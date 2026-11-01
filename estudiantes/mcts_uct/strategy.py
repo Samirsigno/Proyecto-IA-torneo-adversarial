@@ -17,8 +17,9 @@ import time
 
 from motor import Estado, reportar, simular_al_azar
 
-SIMULACIONES = 4  # partidas al azar por cada hoja
-EXPLORACION = math.sqrt(2)  # constante c de UCB1
+SIMULACIONES = 1  # partidas al azar por cada hoja
+K_EXPLORACION = 1.0  # constante de UCB1 (se puede cambiar para explorar más o menos)
+EXPLORACION = math.sqrt(2*K_EXPLORACION)  # constante c de UCB1
 RESERVA = 0.3  # fracción del reloj que nunca gastamos pensando (la comunicación también cuesta)
 
 

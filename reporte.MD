@@ -440,6 +440,45 @@ estudiantes/primer_lugar/herramientas/entrenar.sh --horas 8
 - `equipo.toml` usa a los integrantes de `primer_lugar`.
 - Sin commit.
 
+### 22. Búsqueda de K_EXPLORACION: `mcts_uct/herramientas/tuning_mcts.py` — TDD (2026-11-01)
+
+- **Antes:** el usuario dejó `mcts_uct` como UCT de libro (`SIMULACIONES = 1`,
+  `K_EXPLORACION` con c = √(2k)). Se comprobó que `mcts_uct` nunca usó la tabla V: no importa
+  numpy, `abstraccion` ni `mcts`, y su `data/` está vacía.
+- **Diseño elegido por el usuario (opción A):**
+  - k de 1.0 a 6.0 cada 0.5, es decir 11 valores, con 30 partidas por k: 330 partidas.
+  - Contra el `montecarlo` original, con el reloj real de 30 s.
+  - 5 partidas a la vez, con un núcleo fijo por bot (las ranuras de `liga.ejecutar`).
+- **Cuentas presentadas:**
+  - En serie: 2 h / 110 partidas = 65.5 s por partida, o sea 0.72 s por turno.
+  - Se descartó porque en la liga UCT usa ~0.45 s por turno, y el mejor c depende del número
+    de iteraciones. Además `montecarlo` no acepta un tiempo fijo por turno.
+  - Error estándar del win rate: ±16 puntos con 10 partidas y ±9 con 30.
+- **Cómo funciona:**
+  - Para cada k copia el bot a la carpeta de salida con solo la línea `K_EXPLORACION`
+    cambiada. El contenedor del bot es de solo lectura y no recibe variables de entorno.
+  - Todos los k juegan con los mismos dados: el juego j se juega una vez con cada color.
+  - Las partidas se intercalan por k.
+  - Una partida con falla de Docker se repite hasta 3 veces.
+  - Escribe `partidas.csv` al terminar cada partida, más `resumen.csv` y las repeticiones `.json`.
+  - Reanuda con la misma `--salida`.
+  - Desde WSL se relanza solo con `docker compose run`.
+- **Pruebas** (`test_tuning_mcts.py`, 15):
+  - Valores de k y c = √(2k).
+  - La copia tiene su k y el original no cambia; si falta la línea de K es error.
+  - 15 partidas con cada color por k, con los mismos dados para todos los k, intercaladas.
+  - Métricas de la fila del CSV.
+  - Reanudar.
+  - Barra con ETA.
+  - Win rate y error estándar.
+- **RED:** ImportError. **GREEN:** 23 passed en `mcts_uct`.
+- **Prueba de humo:** 2 valores de k × 2 partidas, 2 a la vez, en 1 min 27 s (~41 s por
+  partida). CSV y JSON correctos. Al relanzar dijo «4 hechas, faltan 0». Se borró y no quedó
+  ningún contenedor.
+- **Estimado de la corrida completa:** 330 / 5 × ~42 s ≈ 46 min, más lo que baje la velocidad
+  con 10 núcleos ocupados.
+- **Comando:** `python3 estudiantes/mcts_uct/herramientas/tuning_mcts.py`.
+
 ### Pendiente
 
 - Comando para fusionar las tablas de las dos máquinas (`fusionar_arreglos` ya existe) y dejar
