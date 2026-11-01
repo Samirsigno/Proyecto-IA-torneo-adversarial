@@ -402,6 +402,44 @@ estudiantes/primer_lugar/herramientas/entrenar.sh --horas 8
 - **Para entrenar:** abrir Docker Desktop antes de correr
   `estudiantes/primer_lugar/herramientas/entrenar.sh`.
 
+### 21. Bot de práctica `estudiantes/mcts_uct` (UCT clásico) — hecho con TDD (2026-11-01)
+
+- **Origen:** copia de `estudiantes/montecarlo`. `montecarlo_naive` solo tenía carpetas vacías.
+  Es independiente de `primer_lugar`: no usa la tabla V.
+- **Algoritmo** (`strategy.py`):
+  - Selección con UCB1, c = √2.
+  - Los ataques son nodos de azar: el dado se tira con la `p` real y cada resultado tiene su
+    propio subárbol.
+  - Expansión de una jugada nueva por iteración, en orden al azar.
+  - Simulación con 4 partidas de `simular_al_azar`.
+  - Retropropagación: cada jugada suma la fracción que ganó quien la hizo.
+  - Juega la jugada más visitada.
+  - El reloj se reparte como en `montecarlo` (reserva del 30 % y 1/25 por jugada).
+  - `preparar` calienta numba, también con un ataque.
+- **Pruebas** (`herramientas/test_strategy.py`, 8):
+  - La fórmula UCB1.
+  - Las visitas cuadran entre raíz, ramas e hijos.
+  - Prueba cada jugada antes de repetir.
+  - El dado de un ataque con p = 0.65 da 2 500–2 700 de 4 000.
+  - Un nodo terminal no se expande.
+  - Cada color anota su tercer punto antes de que lo anote el rival.
+  - `jugar` regresa una jugada legal dentro de su presupuesto.
+  - Sin tiempo contesta al instante.
+- **RED:** ImportError. **GREEN:** 8 passed.
+- **Corrección de una prueba:** la primera versión esperaba solo `e8-e9`. También anotan
+  `e8-d9` y `e8-f9`, y en esa posición todas las jugadas ganaban. Se cambió a una posición
+  donde ambos amenazan el tercer punto y se acepta cualquier jugada que anote.
+- **Mutación:** invertir la perspectiva en la retropropagación hace fallar esa prueba.
+- **`./torneo validar mcts_uct`:** pasa. Avisa ⚠ que se queda sin reloj con los 3 s de prueba:
+  cada jugada cuesta ~45 ms de comunicación y la reserva de 0.9 s no alcanza para ~100
+  jugadas. Con 30 s, la reserva de 9 s alcanza para ~200.
+- **Partidas con 30 s:**
+  - Contra `random`: ganó 1 de 1, 3–0, con unas 3 500 iteraciones por jugada al inicio.
+  - Contra `montecarlo` (`--semilla 11`, 4 partidas): **perdió 1–3**, con reloj máximo de
+    19.6 s.
+- `equipo.toml` usa a los integrantes de `primer_lugar`.
+- Sin commit.
+
 ### Pendiente
 
 - Comando para fusionar las tablas de las dos máquinas (`fusionar_arreglos` ya existe) y dejar
