@@ -380,6 +380,28 @@ estudiantes/primer_lugar/herramientas/entrenar.sh --horas 8
   16.9 M respaldos). Solo se consultó, no se cambió nada.
 - Código de esta sección sin commit.
 
+### 20. Docker no respondía: revisión del entorno de entrenamiento (2026-10-31)
+
+- **Causa:** Docker Desktop no estaba abierto en Windows. No había ningún proceso de Docker y el
+  enlace `/usr/bin/docker → /mnt/wsl/docker-desktop/...` estaba roto (esa carpeta solo existe
+  mientras Docker Desktop corre). WSL respondía «docker could not be found in this WSL 2
+  distro».
+- **Arreglo:** se abrió `Docker Desktop.exe` desde WSL. El daemon respondió a los ~8 s (cliente
+  y servidor 29.1.3, 12 CPUs, 7.4 GiB).
+- **Verificado:**
+  - La imagen `torneo-base:local` existe y no había ningún contenedor ni bloque `psm_` en
+    `/dev/shm`.
+  - `tablas/alexs.npy` es float32 de (8991,), sin NaN ni inf, con 2 064 celdas distintas de
+    cero y rango [−1 138.6, 1 377.4]. Lleva 4 230 partidas y su último guardado fue el
+    2026-10-28 a las 22:56 UTC. Ese avance aún no tiene commit.
+  - Las pruebas en Docker dan **46 passed**. pytest no viene en la imagen: el ayudante del
+    agente lo instala en cada corrida, dentro del contenedor.
+  - **Prueba de humo** de `entrenar.sh --etiqueta prueba_humo --horas 0.006 --workers 12`:
+    3 partidas y 141 938 respaldos en 21.7 s (~6 500/s). Guardó y salió limpio.
+  - `alexs.npy` quedó intacta (mismo sha256 antes y después). La tabla de prueba se borró.
+- **Para entrenar:** abrir Docker Desktop antes de correr
+  `estudiantes/primer_lugar/herramientas/entrenar.sh`.
+
 ### Pendiente
 
 - Comando para fusionar las tablas de las dos máquinas (`fusionar_arreglos` ya existe) y dejar

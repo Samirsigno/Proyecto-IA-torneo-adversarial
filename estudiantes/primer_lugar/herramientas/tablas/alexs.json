@@ -1,11 +1,11 @@
 {
-  "partidas": 3068,
-  "respaldos": 201555435,
-  "segundos": 28843.7,
+  "partidas": 6615,
+  "respaldos": 278020736,
+  "segundos": 40850.4,
   "gamma": 0.95,
-  "iteraciones": 800,
+  "iteraciones": 300,
   "epsilon": 0.1,
   "prob_caos": 0.05,
   "trabajadores": 12,
-  "actualizado": "2026-10-28T13:35:43+00:00"
+  "actualizado": "2026-11-01T02:24:10+00:00"
 }
